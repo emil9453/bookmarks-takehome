@@ -49,7 +49,9 @@ class BookmarkRepositoryTests {
 			.getStatistics();
 		statistics.clear();
 
-		List<Bookmark> page = this.repository.findAll(PageRequest.of(0, 10)).getContent();
+		// Through search(), because that is the only list path the API actually uses — findAll
+		// could keep its batching forever while the endpoint people hit lost it.
+		List<Bookmark> page = this.repository.search(null, null, null, PageRequest.of(0, 10)).getContent();
 		page.forEach((bookmark) -> bookmark.getTags().size());
 
 		assertThat(page).hasSize(10);
