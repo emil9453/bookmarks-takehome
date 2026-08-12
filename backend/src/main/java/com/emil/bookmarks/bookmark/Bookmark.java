@@ -121,7 +121,12 @@ public class Bookmark {
 		if (tags == null) {
 			return;
 		}
-		tags.stream().map((tag) -> tag.toLowerCase(Locale.ROOT).trim()).forEach(this.tags::add);
+		tags.stream()
+			.map((tag) -> tag.toLowerCase(Locale.ROOT).trim())
+			// A whitespace-only tag would otherwise become an empty-string row, and then show
+			// up as a real tag everywhere tags are listed or filtered on.
+			.filter((tag) -> !tag.isEmpty())
+			.forEach(this.tags::add);
 	}
 
 	public Instant getCreatedAt() {
