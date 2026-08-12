@@ -7,12 +7,27 @@ Take-home task for BirSearch.
 
 | | |
 |---|---|
-| **Live API** | _to be filled in_ |
+| **Live API** | https://bookmarks-api-4i5h.onrender.com |
+| **Health check** | https://bookmarks-api-4i5h.onrender.com/actuator/health |
 | **Android APK** | _to be filled in_ |
 | **Decisions & trade-offs** | [NOTES.md](NOTES.md) |
 
 > The API is hosted on a free tier that sleeps when idle. The first request after a quiet
 > period takes around 50 seconds while the container wakes up. Subsequent requests are normal.
+> Nothing is broken — it is worth hitting the health check once and waiting before judging
+> anything else.
+
+Quick look:
+
+```bash
+curl https://bookmarks-api-4i5h.onrender.com/api/v1/bookmarks
+
+curl -X POST https://bookmarks-api-4i5h.onrender.com/api/v1/bookmarks \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://kotlinlang.org","title":"Kotlin docs","tags":["kotlin"],"notes":"coroutines"}'
+
+curl 'https://bookmarks-api-4i5h.onrender.com/api/v1/bookmarks?q=kotlin'
+```
 
 ## Layout
 
