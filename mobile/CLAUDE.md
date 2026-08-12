@@ -50,12 +50,18 @@ order throws away the most interesting thing in the project.
 
 Configured per build type, never hardcoded in a call site.
 
-- debug → the local machine (`10.0.2.2` is the emulator alias; a USB device needs the host's
-  LAN IP, or `adb reverse tcp:8080 tcp:8080`)
-- release → the deployed HTTPS URL
+**Both build types point at the deployed HTTPS backend.** The backend is deployed before this
+session starts, specifically so there is no local-networking problem to solve — no `adb
+reverse`, no hunting for the host's LAN IP, no cleartext exception. HTTPS works from a USB
+device with no configuration at all.
 
-Plain HTTP to a development machine is blocked by default on Android, so debug builds need a
-cleartext exception scoped to that host. Release is HTTPS and needs nothing.
+Only reach for a local backend if you are actively changing the API, and then use
+`adb reverse tcp:8080 tcp:8080` plus a cleartext exception scoped to that host. Default to the
+deployed URL.
+
+Remember the free tier sleeps after ~15 minutes idle, so the first request of a session takes
+around 50 seconds. That is the backend waking up, not a bug in the app — but it is worth making
+sure the loading state survives a request that slow, because the reviewers will hit it too.
 
 ## Traps
 

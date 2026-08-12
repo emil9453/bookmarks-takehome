@@ -50,7 +50,10 @@ Repeat until no Todo issues remain for this session's label:
 5. **Fix** what the review found. Re-review only if the fix was substantial.
 6. **Test.** Backend: `./mvnw test`. Mobile: `./gradlew testDebugUnitTest` plus a real install
    on the device.
-7. **Commit**, with the issue id in the message.
+7. **Commit**, with the issue id in the message. **Stage only your own subtree** —
+   `git add backend/` or `git add mobile/`, never `git add -A`. The two sessions may be
+   running at once, and a blanket stage sweeps the other one's half-finished files into your
+   commit.
 8. **Close** the issue. Comment on it if a decision changed along the way.
 9. Next.
 
