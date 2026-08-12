@@ -22,11 +22,6 @@ spring:
       # A field the API does not know is a 400, not a silent no-op. Without this a client
       # typo — {"favorite":true}, one letter short — returns 200 having changed nothing.
       fail-on-unknown-properties: true
-  mvc:
-    problemdetails:
-      # Framework-raised errors come back as RFC 9457 too, so there is one error shape to
-      # parse rather than Spring's default body for some errors and problem details for others.
-      enabled: true
 
 management:
   endpoints:
