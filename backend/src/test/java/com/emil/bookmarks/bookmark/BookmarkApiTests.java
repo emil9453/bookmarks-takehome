@@ -122,7 +122,7 @@ class BookmarkApiTests {
 
 		List<Long> seen = new ArrayList<>();
 		for (int page = 0; page < 3; page++) {
-			this.service.list(PageRequest.of(page, 10, Sort.by(Sort.Direction.ASC, "title")))
+			this.service.search(null, null, null, PageRequest.of(page, 10, Sort.by(Sort.Direction.ASC, "title")))
 				.forEach((bookmark) -> seen.add(bookmark.id()));
 		}
 

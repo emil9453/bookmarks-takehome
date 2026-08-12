@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,20 +40,29 @@ class BookmarkController {
 	}
 
 	/**
-	 * Newest first by default, and {@code ?sort=title,asc} overrides it. The page size ceiling
-	 * is {@code spring.data.web.pageable.max-page-size}, so {@code ?size=100000} is clamped
-	 * rather than served.
+	 * The one list endpoint. {@code ?q=} searches, {@code ?tag=} and {@code ?favourite=} filter,
+	 * and they combine freely — all three, any one, or none, which is the plain list.
+	 *
+	 * <p>With {@code ?q=} the results come back ranked, best first, and {@code ?sort=} is
+	 * demoted to a tiebreak between equally good matches rather than ignored — asking for
+	 * relevance and for alphabetical order at the same time has to resolve one way or the
+	 * other, and relevance is the point of the search. Without {@code ?q=} it is newest first
+	 * by default and {@code ?sort=title,asc} overrides that. The page size ceiling is
+	 * {@code spring.data.web.pageable.max-page-size}, which the argument resolver applies — so
+	 * this keeps taking a {@code Pageable} parameter rather than building one from a request
+	 * field, which would drop the cap with no compile error.
 	 *
 	 * <p>Returns a {@link PagedModel} rather than the {@code Page} itself: the JSON shape of
 	 * {@code Page} is the serialised form of an internal Spring Data type and is not a stable
 	 * contract, which matters when an Android client is parsing it.
 	 */
 	@GetMapping
-	PagedModel<BookmarkResponse> list(
+	PagedModel<BookmarkResponse> list(@RequestParam(required = false) String q,
+			@RequestParam(required = false) String tag, @RequestParam(required = false) Boolean favourite,
 			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 		// No id in the default sort: the service appends it to every sort, including the ones
 		// a client supplies, so naming it here as well would only be a second place to forget.
-		return new PagedModel<>(this.service.list(pageable));
+		return new PagedModel<>(this.service.search(q, tag, favourite, pageable));
 	}
 
 	@GetMapping("/{id}")

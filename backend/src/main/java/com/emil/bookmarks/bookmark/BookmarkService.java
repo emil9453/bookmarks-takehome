@@ -1,5 +1,6 @@
 package com.emil.bookmarks.bookmark;
 
+import java.util.Locale;
 import java.util.Set;
 
 import com.emil.bookmarks.bookmark.BookmarkDtos.BookmarkResponse;
@@ -24,20 +25,41 @@ class BookmarkService {
 	}
 
 	/**
-	 * Maps to DTOs inside the transaction on purpose. The tag collection is lazy and
-	 * {@code open-in-view} is off, so returning entities and mapping in the controller would
-	 * fail on the first bookmark that has tags.
-	 */
-	/**
 	 * Sort keys the API offers. An allow-list rather than "whatever the entity has": entity
 	 * field names are not a contract, and an unknown one otherwise reaches Spring Data and
 	 * surfaces as a 500 for what is a client typo.
 	 */
-	private static final Set<String> SORTABLE = Set.of("createdAt", "updatedAt", "title", "favourite");
+	private static final Set<String> SORTABLE = Set.of("createdAt", "updatedAt", "title", "favourite", "id");
 
+	/**
+	 * Maps to DTOs inside the transaction on purpose. The tag collection is lazy and
+	 * {@code open-in-view} is off, so returning entities and mapping in the controller would
+	 * fail on the first bookmark that has tags.
+	 */
 	@Transactional(readOnly = true)
-	Page<BookmarkResponse> list(Pageable pageable) {
-		return this.repository.findAll(totalOrder(pageable)).map(BookmarkResponse::of);
+	Page<BookmarkResponse> search(String query, String tag, Boolean favourite, Pageable pageable) {
+		return this.repository.search(likePattern(query), normalise(tag), favourite, totalOrder(pageable))
+			.map(BookmarkResponse::of);
+	}
+
+	/**
+	 * Builds the LIKE pattern, with the caller's own wildcards escaped — searching for
+	 * {@code 100%} should look for the characters {@code 100%}, not for "100 followed by
+	 * anything". Tags are stored lower-cased, and the query lower-cases title and notes, so the
+	 * whole comparison is case-insensitive.
+	 */
+	private static String likePattern(String query) {
+		String normalised = normalise(query);
+		if (normalised == null) {
+			return null;
+		}
+		String escaped = normalised.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+		return "%" + escaped + "%";
+	}
+
+	/** Blank is the same as absent: {@code ?q=} from a cleared search box is not a filter. */
+	private static String normalise(String value) {
+		return (value == null || value.isBlank()) ? null : value.trim().toLowerCase(Locale.ROOT);
 	}
 
 	/**
