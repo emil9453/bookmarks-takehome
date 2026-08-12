@@ -18,11 +18,18 @@ curl http://localhost:8080/actuator/health
 # {"groups":["liveness","readiness"],"status":"UP"}
 ```
 
+Interactive API docs at `http://localhost:8080/swagger-ui.html`, generated from the controllers
+so they cannot drift away from the code.
+
+```bash
+./seed.sh        # fill it with a realistic reading list to click around
+```
+
 ## Other commands
 
 ```bash
 ./mvnw test      # unit and slice tests
-./mvnw verify    # full build — run this before calling anything done
+./mvnw verify    # full build — run this before calling anything done, and what CI runs
 ```
 
 ## How the code is organised

@@ -1,0 +1,27 @@
+# Named backend.yml rather than ci.yml so the Android workflow can sit beside it without a
+# merge conflict — the two halves are built in separate sessions.
+name: Backend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # The same command the contributing instructions tell a human to run. If this passes and
+      # a local build does not, the difference is the machine, not the checklist.
+      - run: ./mvnw -B verify

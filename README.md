@@ -5,9 +5,12 @@ favourite them. Java + Spring Boot backend, native Android client.
 
 Take-home task for BirSearch.
 
+[![Backend](https://github.com/emil9453/bookmarks-takehome/actions/workflows/backend.yml/badge.svg)](https://github.com/emil9453/bookmarks-takehome/actions/workflows/backend.yml)
+
 | | |
 |---|---|
 | **Live API** | https://bookmarks-api-4i5h.onrender.com |
+| **API docs** | https://bookmarks-api-4i5h.onrender.com/swagger-ui.html |
 | **Health check** | https://bookmarks-api-4i5h.onrender.com/actuator/health |
 | **Android APK** | _to be filled in_ |
 | **Decisions & trade-offs** | [NOTES.md](NOTES.md) |
@@ -69,9 +72,24 @@ PATCH  /api/v1/bookmarks/{id}
 DELETE /api/v1/bookmarks/{id}
 ```
 
+Interactive docs, generated from the controllers rather than hand-written, are at
+[`/swagger-ui.html`](https://bookmarks-api-4i5h.onrender.com/swagger-ui.html).
+
 Search covers title, tags and notes, and results are ranked — a title match outranks a tag
 match, which outranks a match in the notes, and the scores add up, so a bookmark matching in
 two places outranks one matching in a single place. `q`, `tag` and `favourite` combine freely.
+
+`backend/seed.sh [base-url]` fills an instance with a realistic reading list, arranged so that
+one query shows the whole ranking rule at once:
+
+```
+$ curl '.../api/v1/bookmarks?q=kotlin'
+
+1. Kotlin coroutines: a deep dive      title + tag  = 5
+2. Structured concurrency in practice  tag + notes  = 3   ← ahead of the next on breadth, not score
+3. Kotlin Multiplatform overview       title        = 3
+4. Why we moved off Java               notes        = 1
+```
 
 Errors are RFC 9457 problem details. A validation failure names the field:
 

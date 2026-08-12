@@ -23,3 +23,17 @@ spring:
       # Tomcat worker for half a minute — including the one answering the platform's health
       # probe, which then times out instead of getting a fast 503.
       connection-timeout: 3000
+
+server:
+  # TLS is terminated by the platform's proxy, so without this the app believes every request
+  # arrived on plain http at localhost — which is then what the generated OpenAPI server url
+  # and any absolute link would say.
+  forward-headers-strategy: framework
+
+logging:
+  structured:
+    format:
+      # One JSON object per line instead of human-readable text, so a log search can filter on
+      # a field rather than pattern-match a string. The trace id comes through from MDC as a
+      # queryable field rather than buried in the message.
+      console: ecs

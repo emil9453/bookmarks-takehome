@@ -34,6 +34,12 @@ server:
   # ran without the prod profile should still bind the right port rather than fail confusingly.
   port: ${PORT:8080}
 
+springdoc:
+  # Expands the Pageable argument into page, size and sort instead of documenting it as one
+  # opaque object. A property rather than @ParameterObject on the controller, so the endpoint
+  # signature stays free of documentation-tool imports.
+  default-flat-param-object: true
+
 logging:
   pattern:
     level: "%5p [%X{traceId:-no-trace}]"
