@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only paints the window before Compose draws its first frame. Compose owns every
+         colour after that, so this stays a bare no-action-bar shell. -->
+    <style name="Theme.Bookmarks" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

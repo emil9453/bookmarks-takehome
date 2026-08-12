@@ -1,0 +1,7 @@
+# The root .gitignore has an unanchored `data/` rule for local database files. It also matches
+# the app's data package, which would drop it from every commit without a word. Re-include it.
+!app/src/main/java/az/bookmarks/data/
+
+# The root .gitignore excludes *.jar; the Gradle wrapper jar must be committed
+# so the project builds on a machine without Gradle installed.
+!gradle/wrapper/gradle-wrapper.jar
