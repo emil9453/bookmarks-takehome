@@ -47,7 +47,7 @@ APK points at the deployed one.
 ## API
 
 ```
-GET    /api/v1/bookmarks?q=&tag=&favorite=&page=&size=&sort=
+GET    /api/v1/bookmarks?q=&tag=&favourite=&page=&size=&sort=
 POST   /api/v1/bookmarks
 GET    /api/v1/bookmarks/{id}
 PATCH  /api/v1/bookmarks/{id}
@@ -55,4 +55,12 @@ DELETE /api/v1/bookmarks/{id}
 ```
 
 Search covers title, tags and notes, and results are ranked — a title match outranks a tag
-match, which outranks a match in the notes.
+match, which outranks a match in the notes, and the scores add up, so a bookmark matching in
+two places outranks one matching in a single place. `q`, `tag` and `favourite` combine freely.
+
+Errors are RFC 9457 problem details. A validation failure names the field:
+
+```json
+{ "status": 400, "title": "Bad Request", "detail": "The request has 2 invalid fields.",
+  "errors": { "title": "must not be blank", "url": "must be a valid http or https link" } }
+```
