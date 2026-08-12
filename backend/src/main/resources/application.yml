@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: bookmarks
+  # No datasource configured on purpose. With H2 on the classpath and no url set, Boot
+  # auto-configures an in-memory database, so `./mvnw spring-boot:run` needs no setup — and a
+  # prod profile with a missing DATABASE_URL then fails loudly instead of quietly falling back
+  # to H2 and reporting healthy.
+  jpa:
+    # Flyway owns the schema. `validate` makes the app refuse to start if the entities and the
+    # migrations have drifted apart.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  pattern:
+    level: "%5p [%X{traceId:-no-trace}]"
