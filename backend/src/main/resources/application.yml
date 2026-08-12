@@ -34,6 +34,11 @@ management:
       exposure:
         include: health
 
+server:
+  # Hosts inject the port they want the app on. Not profile-specific: a deploy that somehow
+  # ran without the prod profile should still bind the right port rather than fail confusingly.
+  port: ${PORT:8080}
+
 logging:
   pattern:
     level: "%5p [%X{traceId:-no-trace}]"

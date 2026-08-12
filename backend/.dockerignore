@@ -1,0 +1,2 @@
+# The build context is otherwise 61 MB of build output that no COPY line even reads.
+target/

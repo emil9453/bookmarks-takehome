@@ -1,0 +1,25 @@
+# Deployed configuration. Everything secret comes from the environment — nothing here is a
+# credential, and none of these have defaults on purpose: a missing one has to stop the app,
+# not silently start it on an in-memory database that reports itself healthy and loses every
+# bookmark on the next restart.
+#
+# The Dockerfile activates this profile, so the deployed image cannot accidentally run without
+# it.
+spring:
+  datasource:
+    # Must be the JDBC form: jdbc:postgresql://host/db?sslmode=require
+    # Hosted Postgres usually hands out postgres://user:pass@host/db, which is not the same
+    # thing and fails at startup with 'url' must start with "jdbc".
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      # Free-tier Postgres allows few connections and this is one small service.
+      maximum-pool-size: 5
+      # Hikari defaults the floor to the ceiling, which parks five connections open around the
+      # clock and keeps a scale-to-zero database awake for a service nobody is using.
+      minimum-idle: 1
+      # Default is 30 seconds. On a small instance that means a database blip parks every
+      # Tomcat worker for half a minute — including the one answering the platform's health
+      # probe, which then times out instead of getting a fast 503.
+      connection-timeout: 3000
