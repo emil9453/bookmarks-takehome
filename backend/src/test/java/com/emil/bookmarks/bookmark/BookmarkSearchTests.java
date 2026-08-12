@@ -33,19 +33,25 @@ class BookmarkSearchTests {
 		this.repository.deleteAll();
 	}
 
+	/**
+	 * Saved best-first on purpose. The fallback order when nothing is ranked ends {@code id
+	 * desc}, so fixtures saved worst-first would come back in the expected order whether the
+	 * ranking worked or not — this ordering fails outright if the score is ignored.
+	 */
 	@Test
 	void ranksTitleAboveTagAboveNotes() {
-		long notesOnly = save("Some guide", Set.of("misc"), "all about kotlin");
-		long tagOnly = save("Some guide", Set.of("kotlin"), "nothing relevant");
 		long titleOnly = save("Kotlin guide", Set.of("misc"), "nothing relevant");
+		long tagOnly = save("Some guide", Set.of("kotlin"), "nothing relevant");
+		long notesOnly = save("Some guide", Set.of("misc"), "all about kotlin");
 
 		assertThat(idsFrom(search("kotlin"))).containsExactly(titleOnly, tagOnly, notesOnly);
 	}
 
 	@Test
 	void matchingInTwoPlacesOutranksMatchingInOne() {
-		long titleOnly = save("Kotlin guide", Set.of("misc"), "nothing relevant");
+		// Again best-first, so recency alone cannot reproduce the expected answer.
 		long titleAndTag = save("Kotlin book", Set.of("kotlin"), "nothing relevant");
+		long titleOnly = save("Kotlin guide", Set.of("misc"), "nothing relevant");
 
 		// 3 + 2 beats 3 — the scores add up rather than stopping at the first field that hits.
 		assertThat(idsFrom(search("kotlin"))).containsExactly(titleAndTag, titleOnly);
@@ -55,6 +61,11 @@ class BookmarkSearchTests {
 	 * Title alone scores 3, and tag plus notes also scores 3. Whichever way that tie is settled,
 	 * it must be settled by a rule — before the breadth tiebreak existed, the winner was
 	 * whichever happened to be saved later.
+	 *
+	 * <p>This and the test below are a pair, and the pair is the assertion: the same two
+	 * bookmarks saved in both orders have to produce the same answer. Only one of the two can
+	 * fail for any given bug, since the other's expected answer coincides with the fallback
+	 * order — that is what makes them a control and a test rather than a duplicate.
 	 */
 	@Test
 	void whenScoresCollideTheBookmarkMatchingInMorePlacesWins() {
@@ -144,9 +155,12 @@ class BookmarkSearchTests {
 	@Test
 	void aWildcardTypedIntoTheSearchBoxIsSearchedForLiterally() {
 		long literal = save("Save 100% of the time", Set.of("misc"), null);
-		save("Unrelated", Set.of("misc"), null);
+		// Has to start with "100" as well, or it is excluded by the literal characters alone
+		// and the test passes whether the % is escaped or not.
+		save("100 ways to save", Set.of("misc"), null);
 
-		// Unescaped, "100%" as a LIKE pattern would also match the second bookmark.
+		// Escaped, the pattern needs the characters "100%". Unescaped it becomes %100%%, whose
+		// trailing wildcard also matches the second bookmark.
 		assertThat(idsFrom(search("100%"))).containsExactly(literal);
 	}
 

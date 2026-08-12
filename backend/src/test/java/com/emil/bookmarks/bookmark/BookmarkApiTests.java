@@ -89,6 +89,52 @@ class BookmarkApiTests {
 		this.rest.delete().uri(PATH + "/" + id).exchange().expectStatus().isNotFound();
 	}
 
+	/**
+	 * Everything else about search is tested through the service. This is the only thing that
+	 * pins the wiring: the query-parameter names, and each one reaching the argument it belongs
+	 * to. Without it, swapping the controller's {@code q} and {@code tag} arguments — or
+	 * passing nulls for all three — leaves the whole suite green while the phone's search box
+	 * returns the entire table.
+	 */
+	@Test
+	void theSearchAndFilterParametersAreWiredToTheRightArguments() {
+		create("https://kotlinlang.org", "Kotlin guide", Set.of("android"));
+		create("https://spring.io", "Spring guide", Set.of("java"));
+
+		this.rest.get()
+			.uri(PATH + "?q=kotlin")
+			.exchange()
+			.expectStatus()
+			.isOk()
+			.expectBody()
+			.jsonPath("$.page.totalElements")
+			.isEqualTo(1)
+			.jsonPath("$.content[0].title")
+			.isEqualTo("Kotlin guide");
+
+		this.rest.get()
+			.uri(PATH + "?tag=java")
+			.exchange()
+			.expectStatus()
+			.isOk()
+			.expectBody()
+			.jsonPath("$.page.totalElements")
+			.isEqualTo(1)
+			.jsonPath("$.content[0].title")
+			.isEqualTo("Spring guide");
+
+		// A tag that exists as a search term but not as a tag: proves tag is filtering on tags
+		// rather than quietly running as a second text search.
+		this.rest.get()
+			.uri(PATH + "?tag=kotlin")
+			.exchange()
+			.expectStatus()
+			.isOk()
+			.expectBody()
+			.jsonPath("$.page.totalElements")
+			.isEqualTo(0);
+	}
+
 	@Test
 	void pageSizeIsCappedSoNobodyCanAskForTheWholeTable() {
 		create("https://spring.io", "Spring");
@@ -131,9 +177,11 @@ class BookmarkApiTests {
 	}
 
 	private long create(String url, String title) {
-		BookmarkResponse created = this.service
-			.create(new BookmarkDtos.CreateRequest(url, title, Set.of("tag"), null, null));
-		return created.id();
+		return create(url, title, Set.of("tag"));
+	}
+
+	private long create(String url, String title, Set<String> tags) {
+		return this.service.create(new BookmarkDtos.CreateRequest(url, title, tags, null, null)).id();
 	}
 
 }

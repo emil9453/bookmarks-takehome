@@ -32,6 +32,40 @@ class BookmarkValidationTests {
 			.isEqualTo("must not be blank");
 	}
 
+	/**
+	 * The same rule through the other door. A partial update cannot use {@code @NotBlank} —
+	 * null there means "leave this alone" — so blank-rejection on PATCH is a separate
+	 * constraint, and separate constraints need separate tests.
+	 */
+	@Test
+	void aBlankTitleIsRejectedOnAPartialUpdateToo() {
+		this.rest.patch()
+			.uri(PATH + "/1")
+			.contentType(MediaType.APPLICATION_JSON)
+			.body("""
+					{"title":"   "}""")
+			.exchange()
+			.expectStatus()
+			.isBadRequest()
+			.expectBody()
+			.jsonPath("$.errors.title")
+			.isEqualTo("must not be blank");
+	}
+
+	@Test
+	void anUnknownIdIsA404OnEveryVerbThatTakesOne() {
+		this.rest.get().uri(PATH + "/999999").exchange().expectStatus().isNotFound();
+		this.rest.delete().uri(PATH + "/999999").exchange().expectStatus().isNotFound();
+		this.rest.patch()
+			.uri(PATH + "/999999")
+			.contentType(MediaType.APPLICATION_JSON)
+			.body("""
+					{"favourite":true}""")
+			.exchange()
+			.expectStatus()
+			.isNotFound();
+	}
+
 	@Test
 	void aMalformedLinkIsRejectedAndNamed() {
 		post("""

@@ -57,7 +57,11 @@ class BookmarkRepositoryTests {
 		assertThat(page).hasSize(10);
 		// One query for the page, one for its total, one batched fetch for every row's tags.
 		// One query per row instead would be 12.
-		assertThat(statistics.getPrepareStatementCount()).isLessThanOrEqualTo(3);
+		//
+		// Exactly 3, not "at most 3": Hibernate's counters read 0 when statistics are switched
+		// off, so an upper bound would quietly pass forever if the @TestPropertySource above
+		// ever went away — with the N+1 fully reintroduced and nothing to show for it.
+		assertThat(statistics.getPrepareStatementCount()).isEqualTo(3);
 	}
 
 	@Test
