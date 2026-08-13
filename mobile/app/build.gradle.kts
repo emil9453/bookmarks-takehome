@@ -7,9 +7,10 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Placeholder until the backend is deployed (BOO-14 swaps in the real host).
-// Retrofit requires a trailing slash on the base URL.
-val backendUrl = "https://bookmarks-api.invalid/"
+// Both build types point at the deployed HTTPS backend, so a USB-connected device needs no
+// local networking set up — no adb reverse, no LAN IP, no cleartext exception.
+// Retrofit requires the trailing slash.
+val backendUrl = "https://bookmarks-api-4i5h.onrender.com/"
 
 android {
     namespace = "az.bookmarks"
@@ -68,7 +69,12 @@ dependencies {
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.kotlinx.serialization)
+    // Arrives transitively with Retrofit, declared because Network.kt configures the client.
+    implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
+    // Needed to drive viewModelScope: Dispatchers.Main does not exist in a JVM unit test, and
+    // the paging races are only reachable by controlling when each response lands.
+    testImplementation(libs.kotlinx.coroutines.test)
 }

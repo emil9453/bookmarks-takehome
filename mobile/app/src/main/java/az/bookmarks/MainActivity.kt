@@ -27,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import az.bookmarks.ui.BookmarkListScreen
 import kotlinx.serialization.Serializable
 
 class MainActivity : ComponentActivity() {
@@ -71,14 +72,10 @@ fun BookmarksApp() {
 
     NavHost(navController = navController, startDestination = ListRoute) {
         composable<ListRoute> {
-            StubScreen(title = "Bookmarks", body = "List screen — BOO-14.") {
-                Button(onClick = { navController.navigateOnce(AddRoute) }) {
-                    Text("Add a bookmark")
-                }
-                Button(onClick = { navController.navigateOnce(DetailRoute(id = 1L)) }) {
-                    Text("Open bookmark 1")
-                }
-            }
+            BookmarkListScreen(
+                onOpenBookmark = { id -> navController.navigateOnce(DetailRoute(id)) },
+                onAddBookmark = { navController.navigateOnce(AddRoute) },
+            )
         }
 
         composable<AddRoute> {
