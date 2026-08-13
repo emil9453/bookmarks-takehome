@@ -1,67 +1,138 @@
 # Notes
 
-<!--
-Skeleton only — fill each section in as the work happens, not at the end.
-The AI section in particular cannot be reconstructed from memory on the last evening;
-keep NOTES-scratch.md open and append to it the moment something goes wrong.
--->
+A read-it-later service: Spring Boot 4 API plus a native Android client. Built over two days
+against a brief whose governing line was *"no auth, no over-engineering — small and clean beats
+big and unfinished."* Most of what follows is therefore about what was left out.
 
 ## Key decisions and trade-offs
 
-_To fill in. Already settled and worth covering:_
+**One service, not two.** Splitting was considered properly and rejected: there is one aggregate,
+one team, one deployment, and nothing with a different scaling profile. A second service would
+have bought a network hop and a distributed transaction in exchange for nothing. The trigger for
+revisiting is a second bounded context with genuinely different write patterns — not traffic.
 
-- _Why this stayed a single service rather than being split._
-- _Error format: RFC 9457 problem details rather than a custom response envelope._
-- _In-memory database locally so it starts with one command; Postgres in production._
-- _Search ranking: weighted and summed, so a title-and-tag match outranks title alone._
-- _What was left out of the Android app on purpose, and what would trigger adding each._
+**RFC 9457 problem details rather than a custom envelope.** Spring already produces
+`ProblemDetail`, so a bespoke `{success, data, error}` wrapper would have meant writing code to
+replace something the framework does correctly, and clients would have had to learn a private
+format. Errors carry `type`, `title`, `status`, `detail`, and validation failures add an `errors`
+object naming the offending fields.
 
-## Why the app is branded as BirBookmarks
+**H2 locally, Postgres in production, one schema.** The API starts with `./mvnw spring-boot:run`
+and no database to install, which is what the brief asked for. Flyway owns the schema rather than
+`ddl-auto`, so the migration that runs against H2 is the same one that ran against production —
+`ddl-auto` in production is how schemas drift silently.
 
-The app wears the Birbank design language: their red (`#EC3342`), their ink and greys, Onest as
-the typeface, their ribbon mark, white cards on a near-white page, a filled pill search field and
-a bottom bar in their style.
+**Search ranking is a weighted sum, in two keys.** Title match scores 3, tag 2, notes 1, and they
+are summed, so a bookmark matching title *and* tag outranks one matching title alone. The second
+key is how many fields matched at all, because the weights collide: a title-only hit scores 3, and
+so does tag-plus-notes. Without the tiebreak those two are ordered arbitrarily, which looks like a
+bug precisely when someone is judging the ranking. `LIKE` is honest for this dataset size; the
+upgrade path is Postgres full-text, noted below rather than built.
 
-**The point it makes.** The API and the client are separable from presentation. The same app took a
-completely different skin — palette, type, iconography, navigation shell — without one line of the
-data layer changing: no request, no model, no ViewModel was touched. That is the argument for
-keeping presentation out of the layers underneath it, made by demonstration rather than assertion.
+**What the Android app deliberately does not have.** No dependency-injection framework — three
+objects need constructing, and a hand-written `Network` holder is the seam; Hilt earns its place
+around five injectables or the first module split. No paging library — the four states the brief
+names are four types in a sealed interface, which makes them literal and demonstrable, where
+Paging 3 buries them inside `LoadState`. No local database and no offline mode — not asked for,
+and it brings sync conflicts with it. Each is a sentence I can defend, which is the point.
 
-**The trade-off, stated plainly.** This spent time the brief would rather have seen in features,
-and the brief's line is "no over-engineering, small and clean beats big and unfinished". It was
-sequenced deliberately: after search, add, detail and delete were finished and verified, and before
-the shipped APK, so nothing functional was traded for it and the artifact carries the identity.
-
-**What was deliberately not copied.** Their bottom bar has five tabs because their app has five
-things. This one has two — All and Favourites — because that is what this app has. Padding the bar
-out to five would have put tabs in it that lead nowhere, and a reviewer taps every tab. Borrowing
-the visual language is the goal; borrowing the information architecture would have produced
-decoration. Nothing in the shell is a placeholder.
-
-**On the mark.** The real Birbank mark is used rather than a lookalike, redrawn as a vector from
-their 152px app icon — measured, not eyeballed: it is a true parallelogram with vertical sides and
-two parallel 45-degree cuts. The reviewers are the trademark owner, which makes this low-risk in
-this setting, but it is a deliberate choice rather than an accident. One fidelity note: their icon
-samples `#FF0039`, slightly hotter than the `#EC3342` their site uses for UI red. One red beats two
-nearly identical ones, so the site value won and the mark is drawn in it.
-
-Onest ships inside the APK under the Open Font Licence — one 193KB variable font covering every
-weight, with the licence text alongside it in `assets/`. No new dependency and nothing to license.
+**Branding.** The app is BirBookmarks and wears the Birbank design language — their red
+(`#EC3342`), Onest, their ribbon mark, white cards on a grey page. The argument it makes is that
+the client is separable from presentation: the skin changed completely — palette, type,
+iconography, navigation shell — without touching a request, a model or a ViewModel. It was
+sequenced after every feature was finished, so nothing functional was traded for it. Their bottom
+bar has five tabs because their app has five things; this one has two, because padding it out
+would have put tabs in that lead nowhere.
 
 ## What I'd do with more time
 
-_To fill in._
+- **Postgres full-text search** with a `tsvector` column and a GIN index, replacing `LIKE '%q%'`.
+  The current query cannot use an index for a leading wildcard, so it is a sequential scan that is
+  fine at 35 rows and wrong at 35,000.
+- **Keyset pagination** instead of offset. `OFFSET 10000` makes the database walk 10,000 rows to
+  discard them; a `(score, id)` cursor does not.
+- **Re-measure the cold start and re-size the timeouts.** The free tier's wake was measured at
+  62.6s when the timeouts were set, and at over 120s two days later. The read timeout is 120s, so
+  the headroom is now roughly zero — see below; this is the one loose end I would close first.
+- **Instrumented UI tests.** The unit tests cover the ViewModels, but every bug that actually
+  reached the device this weekend was a Compose-lifecycle bug that unit tests structurally cannot
+  see. Two Espresso tests over the add-then-return path would have caught both.
+- **A proper empty-state illustration and an "undo" on delete.** Deletion is currently immediate
+  and irreversible, which is the wrong default for a destructive action on a list.
 
 ## How it scales
 
-_To fill in. The short version: this is a data-partitioning problem, not a
-distributed-systems one._
+This is a data-partitioning problem, not a distributed-systems one. The read path is a single
+indexed table; the write path is one row at a time with no cross-entity invariant. In order: add
+the full-text index, move pagination to keyset, put a cache in front of the hot list query, then
+read replicas. Splitting the service is nowhere on that list — the bottleneck is the query plan,
+and a second service does not improve a query plan. None of it is in the code, on purpose.
 
 ## AI tools
 
-_To fill in. Which tools, for code and for design, and where they actually saved time._
+**Claude Code (Opus 5) for both halves**, with Linear over MCP for the ticket flow — the
+acceptance criteria lived in the issues and each ticket was closed against its own "done when"
+list rather than a general sense of being finished. It genuinely accelerated the parts where I had
+no muscle memory: Compose layout, Kotlin coroutine and `Flow` idiom, and the Boot 4 API surface,
+which has moved enough since Boot 3 that recall — mine and the model's — is unreliable.
+
+**No design AI tool.** The brief offers v0 / Figma AI / Stitch, and I used none. The design target
+was an existing product, so generating one would have been the wrong move: the palette came out of
+birbank.az's own CSS (`#EC3342`, `#25282B`, `#9496AC`), the typeface from their `@font-face`
+declaration (Onest, Open Font Licence, so it ships inside the APK), and the icon geometry from
+measuring their 152px app icon — a true parallelogram, vertical sides, two parallel 45° cuts —
+rather than eyeballing it. Measuring took less time than prompting would have, and it is defensible
+value by value.
+
+**Where it cost time rather than saved it** is the section below. The pattern worth naming: the
+model was reliable on things with one right answer and unreliable on things whose right answer
+changed recently or depends on a lifecycle it cannot see.
 
 ### Where a tool got it wrong
 
-_To fill in — required. One specific case: what the tool produced, why it was wrong, and how
-it surfaced. A compile error or a failing test is a perfectly good answer._
+**A comment that asserted a guard the code did not have — over a crash.** The generated
+`BookmarkListViewModel` kept the paging cursor in a `var nextPage` and tracked a single `Job`
+called `firstPageJob`, above the comment *"Tracked so a refresh cannot race a load-more that is
+already in flight."* That sentence was simply false. `firstPageJob` only ever held first-page
+jobs, so cancelling it did nothing to an in-flight `loadMore`, whose only real guard was a
+`loadingMore` flag that the refresh success path overwrote.
+
+The consequence was not a wrong list — it was a crash. Pull to refresh while page 2 is loading,
+scroll back down, and the same page appends twice; because `LazyColumn` keys on `it.id`, duplicate
+ids make `SaveableStateProvider` throw `IllegalArgumentException("Key … was used multiple times")`
+and the app dies on the frame the second append lands. It compiled, it ran, and the ~50-second
+cold start makes the race window wide enough to hit by hand.
+
+**How it surfaced:** not the compiler and not a test — a cold-context review pass reading the code
+without having written it. The fix moved the cursor into the `Data` state so it cannot desync from
+the list it describes, appending only when `latest.nextPage == page`.
+
+**The part worth keeping:** when I checked which change was actually load-bearing by removing them
+one at a time, cancelling the job turned out **not** to be — the test still passed without it. Only
+removing the cursor-equality check reproduced the duplicate ids. "I fixed it" was worth verifying
+by breaking it again on purpose.
+
+Three others in the same family, kept in full in [NOTES-scratch.md](NOTES-scratch.md):
+
+- **Jackson 3 flipped a default.** A primitive `boolean favourite` on a request record made every
+  POST that merely *omitted* the field return `400 "Failed to read request"`. Boot 4 ships Jackson
+  3, which turns `FAIL_ON_NULL_FOR_PRIMITIVES` on where Jackson 2 had it off — an absent boolean
+  went from "defaults to false" to "rejects the request" purely by upgrading. Only visible with a
+  field missing, which is exactly what the Android client sends when the user does not tick
+  favourite: a first-run-on-device bug, not a compile error.
+- **An exception handler that compiled, registered, and never ran** — and whose obvious fix
+  (`@Order(HIGHEST_PRECEDENCE)`) was worse than the bug, turning six framework-handled cases into
+  `500`s while all 30 tests that existed at the time stayed green, because none of them requested a
+  URL that does not exist. The regression has a test now.
+- **`remember` used for state that had to outlive the composable.** A "skip the first resume" flag
+  lived in `remember`, so Navigation Compose disposed it on every departure and the list never
+  reloaded after adding a bookmark. No crash, no warning, no failing test — caught only by saving a
+  real bookmark on the device and watching the server reach 34 rows while the screen showed the old
+  one.
+
+The through-line: three of the four compiled cleanly and passed the tests that existed. What caught
+them was a cold reader, a real device, and a test that asserted the message rather than the status
+code.
+
+The suite stands at 34 backend tests and 40 on the mobile side. It is not there for coverage — it
+is there because each of those numbers grew by one on the day something above got through.
