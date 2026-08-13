@@ -62,11 +62,25 @@ would have put tabs in that lead nowhere.
 
 ## How it scales
 
-This is a data-partitioning problem, not a distributed-systems one. The read path is a single
-indexed table; the write path is one row at a time with no cross-entity invariant. In order: add
-the full-text index, move pagination to keyset, put a cache in front of the hot list query, then
-read replicas. Splitting the service is nowhere on that list — the bottleneck is the query plan,
-and a second service does not improve a query plan. None of it is in the code, on purpose.
+This is a data-partitioning problem, not a distributed-systems one. Millions of users each holding
+a few hundred bookmarks means every query touches a few hundred rows — provided queries are scoped
+to an owner and indexed for it. It never becomes a millions-of-rows scan, which is exactly why
+splitting into services would help with none of it.
+
+**The owner column is the missing piece, and its absence is the decision.** Adding it later is
+cheap: one column, backfill to a single anonymous owner, make the indexes composites led by it,
+add one condition per query. No API change and no data movement. It is not in the code because the
+brief says no auth — the reasoning is the deliverable, not the column.
+
+After that, in order: full-text search instead of `LIKE`, keyset pagination instead of offset, a
+cache in front of the hot list query, then read replicas. Only the pagination change touches the
+API contract, which makes it the expensive one to defer; it was deferred anyway because the brief
+asks for pagination by name and per-user page depth stays shallow.
+
+**Worth separating two reasons a search cluster ever gets added**, at a company called BirSearch:
+typo tolerance and multi-language stemming are *capability*, not load. Reaching for Elasticsearch
+because queries got slow is a different decision from reaching for it because you need fuzzy
+matching in three languages, and only the second one is about search. Neither is in the code.
 
 ## AI tools
 
