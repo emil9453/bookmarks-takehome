@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,6 +20,7 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -47,6 +49,7 @@ fun AddBookmarkScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Add bookmark") },
@@ -59,57 +62,70 @@ fun AddBookmarkScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(
-                value = form.url,
-                onValueChange = viewModel::onUrlChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Link") },
-                placeholder = { Text("https://") },
-                singleLine = true,
-                isError = form.urlError != null,
-                supportingText = form.urlError?.let { message -> { Text(message) } },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Uri,
-                    imeAction = ImeAction.Next,
-                ),
-                enabled = !form.saving,
-            )
+            // The form sits on a white card over the grey page, the same surface treatment the
+            // list rows get, so the two screens read as one app.
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedTextField(
+                        value = form.url,
+                        onValueChange = viewModel::onUrlChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Link") },
+                        placeholder = { Text("https://") },
+                        singleLine = true,
+                        isError = form.urlError != null,
+                        supportingText = form.urlError?.let { message -> { Text(message) } },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Next,
+                        ),
+                        enabled = !form.saving,
+                    )
 
-            OutlinedTextField(
-                value = form.title,
-                onValueChange = viewModel::onTitleChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Title") },
-                singleLine = true,
-                isError = form.titleError != null,
-                supportingText = form.titleError?.let { message -> { Text(message) } },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                enabled = !form.saving,
-            )
+                    OutlinedTextField(
+                        value = form.title,
+                        onValueChange = viewModel::onTitleChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Title") },
+                        singleLine = true,
+                        isError = form.titleError != null,
+                        supportingText = form.titleError?.let { message -> { Text(message) } },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        enabled = !form.saving,
+                    )
 
-            TagField(
-                draft = form.tagDraft,
-                tags = form.tags,
-                error = form.tagsError,
-                enabled = !form.saving,
-                onDraftChange = viewModel::onTagDraftChange,
-                onConfirm = viewModel::onTagConfirmed,
-                onRemove = viewModel::onTagRemoved,
-            )
+                    TagField(
+                        draft = form.tagDraft,
+                        tags = form.tags,
+                        error = form.tagsError,
+                        enabled = !form.saving,
+                        onDraftChange = viewModel::onTagDraftChange,
+                        onConfirm = viewModel::onTagConfirmed,
+                        onRemove = viewModel::onTagRemoved,
+                    )
 
-            OutlinedTextField(
-                value = form.notes,
-                onValueChange = viewModel::onNotesChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Notes") },
-                minLines = 3,
-                isError = form.notesError != null,
-                supportingText = form.notesError?.let { message -> { Text(message) } },
-                enabled = !form.saving,
-            )
+                    OutlinedTextField(
+                        value = form.notes,
+                        onValueChange = viewModel::onNotesChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Notes") },
+                        minLines = 3,
+                        isError = form.notesError != null,
+                        supportingText = form.notesError?.let { message -> { Text(message) } },
+                        enabled = !form.saving,
+                    )
+
+                }
+            }
 
             if (form.formError != null) {
                 Text(
@@ -122,6 +138,7 @@ fun AddBookmarkScreen(
             Button(
                 onClick = viewModel::save,
                 modifier = Modifier.fillMaxWidth(),
+                shape = CircleShape,
                 // Disabled while in flight, and the ViewModel refuses a second save anyway. Both,
                 // because the button is the visible half and the guard is the correct half.
                 enabled = !form.saving,

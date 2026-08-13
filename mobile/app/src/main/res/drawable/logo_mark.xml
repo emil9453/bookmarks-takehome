@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Birbank mark. Measured off their 152px app icon rather than eyeballed: the shape is a true
+  parallelogram with vertical left and right edges joined by two parallel 45-degree cuts. Corners
+  in the source are (91,19) (91,104) (60,135) (60,50); this is that shape scaled into a 24dp box.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M15.9,2.4 L15.9,15.8 L9.0,20.7 L9.0,7.3 Z"
+        android:fillColor="#EC3342" />
+</vector>

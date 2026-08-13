@@ -4,10 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
@@ -19,6 +15,7 @@ import androidx.navigation.toRoute
 import az.bookmarks.ui.AddBookmarkScreen
 import az.bookmarks.ui.BookmarkDetailScreen
 import az.bookmarks.ui.BookmarkListScreen
+import az.bookmarks.ui.theme.BirBookmarksTheme
 import kotlinx.serialization.Serializable
 
 class MainActivity : ComponentActivity() {
@@ -26,22 +23,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BookmarksTheme {
+            BirBookmarksTheme {
                 BookmarksApp()
             }
         }
     }
-}
-
-@Composable
-fun BookmarksTheme(content: @Composable () -> Unit) {
-    // ponytail: the stock Material 3 schemes. A hand-tuned palette buys nothing for a
-    // read-it-later list; swap in dynamicDarkColorScheme/dynamicLightColorScheme (API 31+) if
-    // matching the user's wallpaper ever matters more than a fixed identity.
-    MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
-        content = content,
-    )
 }
 
 /*

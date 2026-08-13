@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Same shell, dark, so launching in dark mode does not flash white. -->
-    <style name="Theme.Bookmarks" parent="android:Theme.Material.NoActionBar" />
+    <!-- The same shell against the dark page colour, so launching in dark mode does not flash. -->
+    <style name="Theme.BirBookmarks" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <color name="window_background">#15171A</color>
 </resources>

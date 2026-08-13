@@ -1,11 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Bookmark ribbon, drawn inside the 72dp adaptive-icon safe zone of the 108dp viewport. -->
+<!--
+  The Birbank ribbon on a white ground.
+
+  Measured off their 152px app icon rather than eyeballed: the mark is a true parallelogram with
+  vertical left and right edges joined by two parallel 45-degree cuts, corners (91,19) (91,104)
+  (60,135) (60,50) in that 152px canvas.
+
+  Scaled to 62dp tall and centred in the 108dp viewport, which keeps it inside the 72dp safe zone
+  every launcher mask is guaranteed to show — so it reads the same as a circle, a squircle or a
+  rounded square. The same path is used for the monochrome themed-icon layer.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M38,28 L70,28 L70,80 L54,67 L38,80 Z" />
+        android:pathData="M62.3,23 L62.3,68.4 L45.7,85 L45.7,39.6 Z"
+        android:fillColor="#EC3342" />
 </vector>
