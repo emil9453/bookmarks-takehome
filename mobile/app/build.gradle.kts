@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -11,6 +12,19 @@ plugins {
 // local networking set up — no adb reverse, no LAN IP, no cleartext exception.
 // Retrofit requires the trailing slash.
 val backendUrl = "https://bookmarks-api-4i5h.onrender.com/"
+
+/**
+ * Release signing, if the key is present. `keystore.properties` and the keystore itself are
+ * git-ignored, so a fresh clone has neither — and rather than failing the build, the release type
+ * simply comes out unsigned, which is what CI wants anyway. The signed APK is the one attached to
+ * the GitHub release.
+ */
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+val hasSigningKey = keystoreProperties.getProperty("storeFile")
+    ?.let { rootProject.file(it).exists() } == true
 
 android {
     namespace = "az.bookmarks"
@@ -30,13 +44,30 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        if (hasSigningKey) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField("String", "BASE_URL", "\"$backendUrl\"")
         }
         release {
-            isMinifyEnabled = false
+            // Both build types point at the same deployed backend, so the APK a reviewer installs
+            // talks to the same API as the development build — never localhost.
             buildConfigField("String", "BASE_URL", "\"$backendUrl\"")
+            signingConfig = signingConfigs.findByName("release")
+            // ponytail: no minification. R8 on a nine-screen app saves a few hundred kilobytes
+            // and buys a class of release-only crash from a missing keep rule for the
+            // serialization and Retrofit reflection. Turn it on when the APK size matters.
+            isMinifyEnabled = false
         }
     }
 

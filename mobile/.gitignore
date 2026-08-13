@@ -5,3 +5,8 @@
 # The root .gitignore excludes *.jar; the Gradle wrapper jar must be committed
 # so the project builds on a machine without Gradle installed.
 !gradle/wrapper/gradle-wrapper.jar
+
+# The release signing key and its password stay out of the repository. A clone without them
+# still builds: the release build type falls back to unsigned (see app/build.gradle.kts).
+release.keystore
+keystore.properties

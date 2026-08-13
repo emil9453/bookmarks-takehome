@@ -152,11 +152,12 @@ fun BookmarkListScreen(
                     )
 
                     is BookmarksUiState.Data -> when {
-                        // Deleting the last row (BOO-17) empties the list without a round trip,
-                        // and an empty data state would otherwise draw a blank screen. Which
-                        // message it gets depends on the query: deleting the only row matching a
-                        // tag must not claim nothing is saved while nine bookmarks sit on the
-                        // server and a chip is still selected.
+                        // Defensive, and unreachable today: `Data` is only ever built from a
+                        // non-empty response and the list never shrinks in place — a delete pops
+                        // back and the refetch on resume rebuilds it. Kept because the cost is
+                        // four lines and the alternative failure is a blank screen. Which message
+                        // it gets depends on the query, so that an empty filtered list never
+                        // claims nothing is saved while a chip is still selected.
                         current.bookmarks.isEmpty() && current.query.isUnfiltered ->
                             EmptyState(onAddBookmark = onAddBookmark)
 

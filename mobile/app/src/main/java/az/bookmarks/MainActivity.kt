@@ -5,29 +5,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import az.bookmarks.ui.AddBookmarkScreen
+import az.bookmarks.ui.BookmarkDetailScreen
 import az.bookmarks.ui.BookmarkListScreen
 import kotlinx.serialization.Serializable
 
@@ -83,19 +73,20 @@ fun BookmarksApp() {
             AddBookmarkScreen(
                 // Both just go back. The list refetches when it resumes, so a saved bookmark is
                 // there without this screen having to tell it anything.
-                onSaved = { navController.popBackStack() },
-                onCancel = { navController.popBackStack() },
+                onSaved = { navController.popOnce() },
+                onCancel = { navController.popOnce() },
             )
         }
 
         composable<DetailRoute> { backStackEntry ->
             val route: DetailRoute = backStackEntry.toRoute()
-            StubScreen(
-                title = "Bookmark ${route.id}",
-                body = "Detail screen — BOO-16. Route argument arrived as id=${route.id}.",
-            ) {
-                Button(onClick = { navController.popBackStack() }) { Text("Back") }
-            }
+            BookmarkDetailScreen(
+                id = route.id,
+                onBack = { navController.popOnce() },
+                // Same as onBack: the list refetches when it resumes, so a deleted bookmark is
+                // gone from it without this screen having to say so.
+                onDeleted = { navController.popOnce() },
+            )
         }
     }
 }
@@ -110,29 +101,13 @@ private fun NavController.navigateOnce(route: Any) {
 }
 
 /**
- * Placeholder for a real screen. Each destination gets its own content in BOO-14 onward; this
- * exists so the navigation graph is walkable on the device today. `actions` is a composable
- * slot rather than a list of label/lambda pairs — the compiler can memoise the slot, where a
- * list allocated at the call site is a new instance on every recomposition.
+ * The same reasoning in reverse. A destination is still hit-testable during its exit transition,
+ * so two taps on Back a few frames apart pop twice — the second one takes the list with it and
+ * leaves an empty back stack behind a blank screen. Popping only from a RESUMED entry drops the
+ * duplicate.
  */
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun StubScreen(
-    title: String,
-    body: String,
-    actions: @Composable ColumnScope.() -> Unit,
-) {
-    Scaffold(topBar = { TopAppBar(title = { Text(title) }) }) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(text = body, style = MaterialTheme.typography.bodyLarge)
-            actions()
-        }
+private fun NavController.popOnce() {
+    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+        popBackStack()
     }
 }

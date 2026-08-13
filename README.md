@@ -59,8 +59,10 @@ cd mobile
 ./gradlew installDebug
 ```
 
-Requires a connected device or emulator. Debug builds point at a local backend; the released
-APK points at the deployed one.
+Requires a connected device or emulator. **Both** build types point at the deployed API above —
+there is no localhost anywhere in the app, which is what lets a USB-connected phone run it with no
+`adb reverse`, no LAN address and no cleartext exception. See [mobile/README.md](mobile/README.md)
+for the build details and why the first request of a session is slow.
 
 ## API
 
