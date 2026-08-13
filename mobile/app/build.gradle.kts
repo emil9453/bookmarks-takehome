@@ -11,7 +11,7 @@ plugins {
 // Both build types point at the deployed HTTPS backend, so a USB-connected device needs no
 // local networking set up — no adb reverse, no LAN IP, no cleartext exception.
 // Retrofit requires the trailing slash.
-val backendUrl = "https://bookmarks-api-4i5h.onrender.com/"
+val backendUrl = "https://bookmarks.178.104.76.109.sslip.io/"
 
 /**
  * Release signing, if the key is present. `keystore.properties` and the keystore itself are

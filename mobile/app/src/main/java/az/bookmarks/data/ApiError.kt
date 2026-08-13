@@ -23,9 +23,9 @@ data class ProblemDetail(
 /**
  * Pulls the problem detail out of a failed call, or null when there is not one to pull.
  *
- * Null is a real case, not defensive padding: a 502 from the host's edge proxy while the free
- * tier wakes up is an HTML page, and a read timeout has no body at all. Callers fall back to
- * their own message.
+ * Null is a real case, not defensive padding: a 502 from the reverse proxy while the container
+ * restarts is an HTML page, and a read timeout has no body at all. Callers fall back to their
+ * own message.
  *
  * The body can only be consumed once, so this is called once per failure.
  */

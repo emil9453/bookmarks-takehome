@@ -24,25 +24,19 @@ object Network {
     internal val json = Json { ignoreUnknownKeys = true }
 
     /**
-     * The backend is on a free tier that sleeps after ~15 minutes idle, and the first request
-     * afterwards waits for the container to start. OkHttp defaults to a 10-second read timeout,
-     * which fails that request every time and makes the app look broken when it is the host
-     * waking up.
+     * These were once 30/120/150, sized for a free hosting tier that slept after 15 minutes idle
+     * and took a measured 62.6s to wake — a 60s read timeout lost that race by 2.6 seconds and
+     * showed the error state on the first launch of every session. The backend now runs on a VPS
+     * that does not sleep and answers in ~250ms, so that headroom no longer buys anything and
+     * actively costs: a server that is genuinely down took ~2 minutes to say so.
      *
-     * The numbers are measured, not guessed. A real cold start timed from this machine:
-     * DNS 0.08s, TCP connect 0.09s, TLS 0.10s, **total 62.6s** — the connection is immediate and
-     * the whole wait is the server thinking. A first draft of this used a 60s read timeout and
-     * lost by 2.6 seconds, showing the error state on the first launch of every session.
-     *
-     * So: connect stays short because connecting is genuinely fast, and read carries real
-     * headroom because that is the leg that waits. The cost is that a server which is actually
-     * unreachable takes ~2 minutes to say so; on a warm server every response is ~0.3s, so this
-     * ceiling is only ever reached on the cold path, where waiting is the correct behaviour.
+     * Still well above OkHttp's 10s read default, because the ceiling that matters now is a slow
+     * mobile network rather than a waking container.
      */
     private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .callTimeout(150, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(45, TimeUnit.SECONDS)
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()

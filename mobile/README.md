@@ -32,7 +32,7 @@ release, or build the debug one, which is signed with the local debug key:
 Both build types point at the deployed API:
 
 ```
-https://bookmarks-api-4i5h.onrender.com
+https://bookmarks.178.104.76.109.sslip.io
 ```
 
 It is set in one place — `backendUrl` in [app/build.gradle.kts](app/build.gradle.kts) — and reaches
@@ -40,27 +40,13 @@ the code as `BuildConfig.BASE_URL`. No call site contains a URL. There is no loc
 that is why a USB-connected phone needs no `adb reverse`, no LAN address and no cleartext
 exception.
 
-### The first request of a session takes about a minute
+The host is a small VPS running the API in Docker under Coolify, behind Traefik with a Let's
+Encrypt certificate. It does not sleep, so every request including the first is around 250ms.
 
-The API is on a free hosting tier that **sleeps after roughly 15 minutes of inactivity**. The first
-request afterwards has to wait for the container to start. Measured from a cold start: DNS 0.08s,
-TCP connect 0.09s, TLS 0.10s, **total 62.6s** — the connection is immediate and the entire wait is
-the server waking up.
-
-So the first launch after a quiet period shows the loading spinner for up to a minute. That is the
-host, not the app. The HTTP timeouts are sized for it deliberately (connect 30s, read 120s, call
-150s); OkHttp's default 10-second read timeout fails that request every time and makes the app look
-broken. Once the server is warm, responses come back in about 0.3s.
-
-**That 62.6s is not a ceiling.** A later cold start was measured at over 120 seconds: a 120s probe
-returned nothing and a retry 15s afterwards returned instantly. Wake time depends on how long the
-container has been down and on the host's load that day, so it varies more than a single
-measurement suggests. The 120s read timeout has less headroom than the number above implies — if a
-review session opens the app on a very cold backend and sees the error state, that is why, and
-pulling to refresh will succeed because the first request did the waking.
-
-If you would rather not wait, hit the API once in a browser first and it will be warm by the time
-the app opens.
+It used to sit on a free tier that slept after 15 minutes idle and took a measured 62.6s to wake —
+once over 120s. The HTTP timeouts were sized for that (connect 30s, read 120s, call 150s) and have
+come back down to 15/30/45 now that the wait is gone: still far above OkHttp's 10s read default,
+because the slow case that remains is a bad mobile network, not a waking container.
 
 ## Requirements to build
 

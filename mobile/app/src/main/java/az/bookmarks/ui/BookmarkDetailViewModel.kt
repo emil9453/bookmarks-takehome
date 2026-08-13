@@ -80,10 +80,10 @@ class BookmarkDetailViewModel(
      * and reconciling afterwards.
      *
      * Both are defensible; this one is chosen because it cannot diverge. An optimistic flip needs
-     * a correct rollback on every failure path, and the failure that matters here — the free tier
-     * asleep, answering in ~60s — is exactly when a star that has already flipped is most
-     * misleading. The star is disabled while the request is in flight, so the state on screen is
-     * always a state the backend agrees with.
+     * a correct rollback on every failure path, and the case that matters — a slow or dropped
+     * request — is exactly when a star that has already flipped is most misleading. The star is
+     * disabled while the request is in flight, so the state on screen is always a state the
+     * backend agrees with.
      */
     fun toggleFavourite() {
         val current = _state.value

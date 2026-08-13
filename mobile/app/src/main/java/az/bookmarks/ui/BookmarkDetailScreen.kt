@@ -74,8 +74,8 @@ fun BookmarkDetailScreen(
     val busy = (state as? BookmarkDetailUiState.Loaded)?.busy == true
 
     // Leaving mid-request cancels it: popping this destination clears its ViewModelStore, which
-    // cancels viewModelScope, which cancels the OkHttp call. On a cold backend the delete can be
-    // waiting a minute, and a user who gives up and presses back would have confirmed a
+    // cancels viewModelScope, which cancels the OkHttp call. On a slow network the delete can be
+    // in flight for a while, and a user who gives up and presses back would have confirmed a
     // destructive action that then silently did not happen. So back is held until it settles.
     BackHandler(enabled = busy) { /* deliberately swallowed while an action is in flight */ }
 

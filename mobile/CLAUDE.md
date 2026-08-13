@@ -59,9 +59,9 @@ Only reach for a local backend if you are actively changing the API, and then us
 `adb reverse tcp:8080 tcp:8080` plus a cleartext exception scoped to that host. Default to the
 deployed URL.
 
-Remember the free tier sleeps after ~15 minutes idle, so the first request of a session takes
-around 50 seconds. That is the backend waking up, not a bug in the app — but it is worth making
-sure the loading state survives a request that slow, because the reviewers will hit it too.
+The backend is self-hosted and does not sleep — every request including the first is ~250ms. It
+used to be on a free tier that slept after 15 minutes idle and took ~60s to wake, which is why
+the HTTP timeouts were once 30/120/150; they are 15/30/45 now.
 
 ## Traps
 
