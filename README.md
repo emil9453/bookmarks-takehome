@@ -12,13 +12,13 @@ Take-home task for BirSearch.
 | **Live API** | https://bookmarks-api-4i5h.onrender.com |
 | **API docs** | https://bookmarks-api-4i5h.onrender.com/swagger-ui.html |
 | **Health check** | https://bookmarks-api-4i5h.onrender.com/actuator/health |
-| **Android APK** | _to be filled in_ |
+| **Android APK** | [BirBookmarks-1.0.apk](https://github.com/emil9453/bookmarks-takehome/releases/download/v1.0/BirBookmarks-1.0.apk) ([release](https://github.com/emil9453/bookmarks-takehome/releases/tag/v1.0)) |
 | **Decisions & trade-offs** | [NOTES.md](NOTES.md) |
 
 > The API is hosted on a free tier that sleeps when idle. The first request after a quiet
-> period takes around 50 seconds while the container wakes up. Subsequent requests are normal.
-> Nothing is broken — it is worth hitting the health check once and waiting before judging
-> anything else.
+> period waits for the container to wake — measured between 60 and 120+ seconds, depending on
+> how long it has been down. Subsequent requests are normal. Nothing is broken — it is worth
+> hitting the health check once and waiting before judging anything else, including the app.
 
 Quick look:
 
