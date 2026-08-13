@@ -27,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import az.bookmarks.ui.AddBookmarkScreen
 import az.bookmarks.ui.BookmarkListScreen
 import kotlinx.serialization.Serializable
 
@@ -79,9 +80,12 @@ fun BookmarksApp() {
         }
 
         composable<AddRoute> {
-            StubScreen(title = "Add bookmark", body = "Add screen — BOO-15.") {
-                Button(onClick = { navController.popBackStack() }) { Text("Back") }
-            }
+            AddBookmarkScreen(
+                // Both just go back. The list refetches when it resumes, so a saved bookmark is
+                // there without this screen having to tell it anything.
+                onSaved = { navController.popBackStack() },
+                onCancel = { navController.popBackStack() },
+            )
         }
 
         composable<DetailRoute> { backStackEntry ->

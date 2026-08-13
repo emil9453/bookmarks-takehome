@@ -20,7 +20,8 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
  */
 object Network {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    /** Internal rather than private so error bodies are parsed with the same configuration. */
+    internal val json = Json { ignoreUnknownKeys = true }
 
     /**
      * The backend is on a free tier that sleeps after ~15 minutes idle, and the first request
