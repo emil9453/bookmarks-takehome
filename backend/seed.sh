@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Fills an instance with a realistic reading list.
 #
-#   ./seed.sh                                        # local
-#   ./seed.sh https://bookmarks-api-4i5h.onrender.com # deployed
+#   ./seed.sh                                                 # local
+#   ./seed.sh https://bookmarks.178.104.76.109.sslip.io       # deployed
 #
 # Additive, not idempotent — running it twice gives you two of everything.
 #

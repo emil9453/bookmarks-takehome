@@ -22,6 +22,15 @@ and no database to install, which is what the brief asked for. Flyway owns the s
 `ddl-auto`, so the migration that runs against H2 is the same one that ran against production —
 `ddl-auto` in production is how schemas drift silently.
 
+**Moved off the free hosting tier, and the move cost no code.** The API first ran on a free tier
+that slept after 15 minutes idle. Its wake was measured at 62.6s once and at over 120s two days
+later, which is the first thing a reviewer would have met. It now runs on a small VPS under
+Coolify, behind Traefik with a Let's Encrypt certificate: ~250ms, no sleep. What made the move a
+config change rather than a project was that the deploy contract is a Dockerfile plus
+`DATABASE_URL` / `DATABASE_USERNAME` / `DATABASE_PASSWORD` — no platform SDK, no vendor client, no
+build-time coupling to a host. Not one line of Java changed. Deploys are a CLI call rather than a
+push hook, which is a fair trade for owning the uptime.
+
 **Search ranking is a weighted sum, in two keys.** Title match scores 3, tag 2, notes 1, and they
 are summed, so a bookmark matching title *and* tag outranks one matching title alone. The second
 key is how many fields matched at all, because the weights collide: a title-only hit scores 3, and
@@ -51,9 +60,6 @@ would have put tabs in that lead nowhere.
   fine at 35 rows and wrong at 35,000.
 - **Keyset pagination** instead of offset. `OFFSET 10000` makes the database walk 10,000 rows to
   discard them; a `(score, id)` cursor does not.
-- **Re-measure the cold start and re-size the timeouts.** The free tier's wake was measured at
-  62.6s when the timeouts were set, and at over 120s two days later. The read timeout is 120s, so
-  the headroom is now roughly zero — see below; this is the one loose end I would close first.
 - **Instrumented UI tests.** The unit tests cover the ViewModels, but every bug that actually
   reached the device this weekend was a Compose-lifecycle bug that unit tests structurally cannot
   see. Two Espresso tests over the add-then-return path would have caught both.
@@ -115,7 +121,7 @@ The consequence was not a wrong list — it was a crash. Pull to refresh while p
 scroll back down, and the same page appends twice; because `LazyColumn` keys on `it.id`, duplicate
 ids make `SaveableStateProvider` throw `IllegalArgumentException("Key … was used multiple times")`
 and the app dies on the frame the second append lands. It compiled, it ran, and the ~50-second
-cold start makes the race window wide enough to hit by hand.
+cold start of the hosting tier in use at the time made the race window wide enough to hit by hand.
 
 **How it surfaced:** not the compiler and not a test — a cold-context review pass reading the code
 without having written it. The fix moved the cursor into the `Data` state so it cannot desync from

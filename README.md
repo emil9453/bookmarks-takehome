@@ -9,27 +9,27 @@ Take-home task for BirSearch.
 
 | | |
 |---|---|
-| **Live API** | https://bookmarks-api-4i5h.onrender.com |
-| **API docs** | https://bookmarks-api-4i5h.onrender.com/swagger-ui.html |
-| **Health check** | https://bookmarks-api-4i5h.onrender.com/actuator/health |
+| **Live API** | https://bookmarks.178.104.76.109.sslip.io |
+| **API docs** | https://bookmarks.178.104.76.109.sslip.io/swagger-ui.html |
+| **Health check** | https://bookmarks.178.104.76.109.sslip.io/actuator/health |
 | **Android APK** | [BirBookmarks-1.0.apk](https://github.com/emil9453/bookmarks-takehome/releases/download/v1.0/BirBookmarks-1.0.apk) ([release](https://github.com/emil9453/bookmarks-takehome/releases/tag/v1.0)) |
 | **Decisions & trade-offs** | [NOTES.md](NOTES.md) |
 
-> The API is hosted on a free tier that sleeps when idle. The first request after a quiet
-> period waits for the container to wake — measured between 60 and 120+ seconds, depending on
-> how long it has been down. Subsequent requests are normal. Nothing is broken — it is worth
-> hitting the health check once and waiting before judging anything else, including the app.
+> Self-hosted on a small VPS: Docker under Coolify, behind Traefik with a Let's Encrypt
+> certificate. It does not sleep, so the first request is as fast as the rest — around 250ms.
+> It ran on a free tier first; that tier slept after 15 minutes idle and woke in 60 to 120+
+> seconds, which is a poor thing to hand a reviewer. [NOTES.md](NOTES.md) has the reasoning.
 
 Quick look:
 
 ```bash
-curl https://bookmarks-api-4i5h.onrender.com/api/v1/bookmarks
+curl https://bookmarks.178.104.76.109.sslip.io/api/v1/bookmarks
 
-curl -X POST https://bookmarks-api-4i5h.onrender.com/api/v1/bookmarks \
+curl -X POST https://bookmarks.178.104.76.109.sslip.io/api/v1/bookmarks \
   -H 'Content-Type: application/json' \
   -d '{"url":"https://kotlinlang.org","title":"Kotlin docs","tags":["kotlin"],"notes":"coroutines"}'
 
-curl 'https://bookmarks-api-4i5h.onrender.com/api/v1/bookmarks?q=kotlin'
+curl 'https://bookmarks.178.104.76.109.sslip.io/api/v1/bookmarks?q=kotlin'
 ```
 
 ## Layout
@@ -75,7 +75,7 @@ DELETE /api/v1/bookmarks/{id}
 ```
 
 Interactive docs, generated from the controllers rather than hand-written, are at
-[`/swagger-ui.html`](https://bookmarks-api-4i5h.onrender.com/swagger-ui.html).
+[`/swagger-ui.html`](https://bookmarks.178.104.76.109.sslip.io/swagger-ui.html).
 
 Search covers title, tags and notes, and results are ranked — a title match outranks a tag
 match, which outranks a match in the notes, and the scores add up, so a bookmark matching in
