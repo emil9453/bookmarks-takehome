@@ -1,6 +1,11 @@
-# Bookmarks — Android app
+# BirBookmarks — Android app
 
 Native Android client for the Bookmarks API. Kotlin, Jetpack Compose, Material 3.
+
+It wears the Birbank design language — their red, their typeface (Onest), their mark — because the
+API and the client are separable from presentation, and the cheapest way to show that is to change
+the skin without touching a request, a model or a ViewModel. The reasoning is in
+[NOTES.md](../NOTES.md).
 
 ## The APK
 
@@ -47,6 +52,13 @@ host, not the app. The HTTP timeouts are sized for it deliberately (connect 30s,
 150s); OkHttp's default 10-second read timeout fails that request every time and makes the app look
 broken. Once the server is warm, responses come back in about 0.3s.
 
+**That 62.6s is not a ceiling.** A later cold start was measured at over 120 seconds: a 120s probe
+returned nothing and a retry 15s afterwards returned instantly. Wake time depends on how long the
+container has been down and on the host's load that day, so it varies more than a single
+measurement suggests. The 120s read timeout has less headroom than the number above implies — if a
+review session opens the app on a very cold backend and sees the error state, that is why, and
+pulling to refresh will succeed because the first request did the waking.
+
 If you would rather not wait, hit the API once in a browser first and it will be warm by the time
 the app opens.
 
@@ -79,6 +91,8 @@ adb devices                       # is the phone connected?
 data/     Retrofit interface, wire models, the RFC 9457 error body, and Network — the hand-written
           object that constructs the Json, the OkHttpClient and the Retrofit
 ui/       One ViewModel and one Composable screen per destination: list, add, detail
+ui/theme/ The Birbank palette, the Onest typography and the shapes — the single source of every
+          colour on screen, so no Material default is ever constructed
 MainActivity.kt   the Compose entry point and the navigation graph
 ```
 
