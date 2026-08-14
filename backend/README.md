@@ -74,3 +74,34 @@ falling back to an in-memory database and reporting itself healthy.
 
 Flyway owns the schema and Hibernate runs with `ddl-auto: validate`, so the app refuses to
 start if the entities and the migrations disagree.
+
+## Rate limit and body cap
+
+The brief says no auth, so the deployed API is writable by anyone who finds it. That is
+accepted — but "anyone can write" should not also mean "anyone can wipe it in a loop". The
+limit lives in the reverse proxy rather than in the application: Traefik already terminates
+TLS and sees the client address, and a bucket in Java would mean a dependency, a filter and
+an in-memory map that a second instance would not share.
+
+Set as custom Docker labels on the Coolify application (Configuration → Advanced), where
+`<uuid>` is the router name already listed there:
+
+```
+traefik.http.middlewares.bookmarks-rl.ratelimit.average=60
+traefik.http.middlewares.bookmarks-rl.ratelimit.period=1m
+traefik.http.middlewares.bookmarks-rl.ratelimit.burst=20
+traefik.http.middlewares.bookmarks-buf.buffering.maxRequestBodyBytes=262144
+traefik.http.routers.https-0-<uuid>.middlewares=bookmarks-rl@docker,bookmarks-buf@docker
+```
+
+60 requests a minute per source address, bursting to 20. A person clicking around never
+reaches it. The 256KB body cap is the same argument: without it a multi-megabyte POST is
+read into memory in full before validation rejects it on a field length, and the proxy can
+refuse it without the application ever allocating.
+
+```bash
+for i in $(seq 1 90); do curl -s -o /dev/null -w "%{http_code}\n" \
+  https://bookmarks.178.104.76.109.sslip.io/api/v1/bookmarks; done | sort | uniq -c
+```
+
+The tail of that run should be `429`.

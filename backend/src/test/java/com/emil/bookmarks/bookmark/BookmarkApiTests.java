@@ -9,6 +9,8 @@ import com.emil.bookmarks.bookmark.BookmarkDtos.BookmarkResponse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -174,6 +176,30 @@ class BookmarkApiTests {
 
 		assertThat(seen).hasSize(25);
 		assertThat(new HashSet<>(seen)).as("a bookmark appeared on two pages, or on none").hasSize(25);
+	}
+
+	/**
+	 * Both spellings filter. This is not tidiness: an unrecognised query parameter is not an
+	 * error in Spring MVC, so before the alias existed {@code ?favorite=true} returned 200 with
+	 * every bookmark in it — the filter dropped, and nothing anywhere saying so. A silently wrong
+	 * answer is worse than a rejected request, and the American spelling is the one a client
+	 * reaches for first.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "favourite", "favorite" })
+	void bothSpellingsOfFavouriteFilter(String parameter) {
+		this.service.update(create("https://example.com/starred", "Starred"),
+				new BookmarkDtos.UpdateRequest(null, null, null, null, true));
+		create("https://example.com/plain", "Plain");
+
+		this.rest.get()
+			.uri(PATH + "?" + parameter + "=true")
+			.exchange()
+			.expectStatus()
+			.isOk()
+			.expectBody()
+			.jsonPath("$.page.totalElements")
+			.isEqualTo(1);
 	}
 
 	private long create(String url, String title) {

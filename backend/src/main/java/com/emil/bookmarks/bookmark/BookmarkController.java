@@ -55,14 +55,22 @@ class BookmarkController {
 	 * <p>Returns a {@link PagedModel} rather than the {@code Page} itself: the JSON shape of
 	 * {@code Page} is the serialised form of an internal Spring Data type and is not a stable
 	 * contract, which matters when an Android client is parsing it.
+	 *
+	 * <p>{@code favorite} is accepted alongside {@code favourite} because an unknown query
+	 * parameter is not an error — Spring drops it and answers 200 with the filter silently
+	 * ignored, which is the worst way for a spelling to fail. A request body spelling it the
+	 * American way already gets a 400 naming the field; the query string had no such backstop.
+	 * British stays canonical, and is what every response and the Android client use.
 	 */
 	@GetMapping
 	PagedModel<BookmarkResponse> list(@RequestParam(required = false) String q,
 			@RequestParam(required = false) String tag, @RequestParam(required = false) Boolean favourite,
+			@RequestParam(required = false) Boolean favorite,
 			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 		// No id in the default sort: the service appends it to every sort, including the ones
 		// a client supplies, so naming it here as well would only be a second place to forget.
-		return new PagedModel<>(this.service.search(q, tag, favourite, pageable));
+		return new PagedModel<>(
+				this.service.search(q, tag, (favourite != null) ? favourite : favorite, pageable));
 	}
 
 	@GetMapping("/{id}")

@@ -81,6 +81,12 @@ Search covers title, tags and notes, and results are ranked — a title match ou
 match, which outranks a match in the notes, and the scores add up, so a bookmark matching in
 two places outranks one matching in a single place. `q`, `tag` and `favourite` combine freely.
 
+`?favorite=` is accepted as well as `?favourite=`. An unknown query parameter is not an error
+in Spring MVC — it is dropped and the request answers `200` with the filter silently ignored,
+which is the worst way for a spelling to fail. Responses and the Android client use the British
+spelling throughout; a request *body* spelling it the other way already gets a `400` naming the
+field.
+
 `backend/seed.sh [base-url]` fills an instance with a realistic reading list, arranged so that
 one query shows the whole ranking rule at once:
 

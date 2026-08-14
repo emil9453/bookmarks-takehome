@@ -4,6 +4,42 @@ A read-it-later service: Spring Boot 4 API plus a native Android client. Built o
 against a brief whose governing line was *"no auth, no over-engineering — small and clean beats
 big and unfinished."* Most of what follows is therefore about what was left out.
 
+## The short version
+
+The brief asked for half a page. This is it; everything below is the supporting detail, there
+because a 30-40 minute walkthrough will go looking for it.
+
+**Decisions.** One service — one aggregate, one deployment, nothing with a different scaling
+profile, so a split would buy a network hop and nothing else. Errors are RFC 9457 problem
+details rather than a custom envelope, because the framework already produces them and a
+bespoke wrapper would have meant a generic type around every model on the phone. Flyway owns
+the schema, not `ddl-auto`, so the migration that ran against H2 is the one that ran against
+production. Search ranking is a weighted sum — title 3, tag 2, notes 1, added together, scored
+in the database so page one holds the best results overall. On the phone: no DI framework, no
+paging library, no local database, each one a deliberate omission with a stated trigger for
+when it would earn its place.
+
+**Trade-offs.** `LIKE '%q%'` cannot use an index; it is honest at 35 rows and wrong at 35,000.
+Offset pagination walks the rows it discards. Both are the right call at this size and both are
+the first things to change.
+
+**With more time:** Postgres full-text search, keyset pagination, and two Espresso tests over
+the add-then-return path — every bug that actually reached the device was a Compose-lifecycle
+bug that unit tests structurally cannot see.
+
+**AI tools.** Claude Code (Opus 5) for both halves, with Linear over MCP holding the acceptance
+criteria. No design AI: the target was an existing product, so the palette, typeface and icon
+geometry were measured out of birbank.az rather than generated.
+
+**Where a tool got it wrong.** A generated ViewModel carried the comment *"Tracked so a refresh
+cannot race a load-more that is already in flight"* over code that tracked no such thing —
+`firstPageJob` only ever held first-page jobs. Pull to refresh mid-load-more, and the same page
+appended twice; `LazyColumn` keys on id, so duplicate ids threw and killed the app. It compiled
+and the tests passed. A cold-context review caught it, and removing each part of the fix in turn
+showed which one was actually load-bearing — the cursor-equality check, not the job cancel.
+
+---
+
 ## Key decisions and trade-offs
 
 **One service, not two.** Splitting was considered properly and rejected: there is one aggregate,
@@ -154,5 +190,11 @@ The through-line: three of the four compiled cleanly and passed the tests that e
 them was a cold reader, a real device, and a test that asserted the message rather than the status
 code.
 
-The suite stands at 34 backend tests and 40 on the mobile side. It is not there for coverage — it
-is there because each of those numbers grew by one on the day something above got through.
+The suite stands at 36 backend tests and 40 on the mobile side. It is not there for coverage — it
+is there because each of those numbers grew by one on the day something above got through. The
+most recent pair came from a review pass over the finished project: the brief spells the filter
+`favorite` and this API spells it `favourite`, and an unrecognised query parameter is not an
+error in Spring MVC — `?favorite=true` was answering `200` with every bookmark in it and the
+filter quietly dropped. A wrong request body was already caught loudly; the query string had no
+such backstop. Both spellings now bind, and the test fails on the American one if the alias is
+removed.
