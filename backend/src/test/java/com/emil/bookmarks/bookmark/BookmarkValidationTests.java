@@ -125,14 +125,19 @@ class BookmarkValidationTests {
 			.exists();
 	}
 
+	/**
+	 * The field is a near-miss of a real one on purpose. {@code favorite} itself is an accepted
+	 * alias, so this has to be a spelling nobody meant — the point being that the alias buys the
+	 * specification's spelling without also turning every mistyped field into a silent no-op.
+	 */
 	@Test
 	void aTypoInAFieldNameIsRejectedAndTheFieldIsNamed() {
 		post("""
-				{"url":"https://example.com","title":"Fine","favorite":true}""").expectStatus()
+				{"url":"https://example.com","title":"Fine","favorit":true}""").expectStatus()
 			.isBadRequest()
 			.expectBody()
 			.jsonPath("$.detail")
-			.isEqualTo("Unknown field 'favorite'.");
+			.isEqualTo("Unknown field 'favorit'.");
 	}
 
 	@Test

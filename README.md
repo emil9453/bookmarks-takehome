@@ -87,9 +87,10 @@ two places outranks one matching in a single place. `q`, `tag` and `favourite` c
 
 `?favorite=` binds as well as `?favourite=`. An unknown query parameter is not an error in
 Spring MVC — it is dropped and the request answers `200` with the filter silently ignored, which
-is the worst way for a spelling to fail. Responses and the Android client use the British
-spelling throughout; a request *body* spelling it the other way already gets a `400` naming the
-field.
+is the worst way for a spelling to fail. Request bodies take both spellings too, for the opposite
+reason: an unknown *field* is a `400`, so without the alias a create request copied out of the
+API description was rejected outright. A genuine typo still fails and still names the field.
+Responses and the Android client use the British spelling throughout.
 
 The deployed instance is rate limited at the proxy — 60 requests a minute per source address,
 bursting to 20, and a 256KB body cap. Clicking around never reaches it; a script will.

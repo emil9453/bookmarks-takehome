@@ -203,6 +203,43 @@ class BookmarkApiTests {
 	}
 
 	/**
+	 * Both spellings in the body, too. The filter took both long before this did, which made the
+	 * gap easy to miss: the specification names the field {@code favorite}, unknown fields are a
+	 * 400 here, and so a create request copied straight out of it was rejected outright while the
+	 * search URL from the same page worked. A reviewer reaching for the documented spelling is the
+	 * likeliest first caller there is.
+	 *
+	 * <p>Create and update are separate records, so the alias on one says nothing about the other.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "favourite", "favorite" })
+	void bothSpellingsOfFavouriteInTheBody(String field) {
+		this.rest.post()
+			.uri(PATH)
+			.contentType(MediaType.APPLICATION_JSON)
+			.body("""
+					{"url":"https://example.com","title":"Starred","%s":true}""".formatted(field))
+			.exchange()
+			.expectStatus()
+			.isCreated()
+			.expectBody()
+			.jsonPath("$.favourite")
+			.isEqualTo(true);
+
+		this.rest.patch()
+			.uri(PATH + "/" + create("https://example.com/plain", "Plain"))
+			.contentType(MediaType.APPLICATION_JSON)
+			.body("""
+					{"%s":true}""".formatted(field))
+			.exchange()
+			.expectStatus()
+			.isOk()
+			.expectBody()
+			.jsonPath("$.favourite")
+			.isEqualTo(true);
+	}
+
+	/**
 	 * Both base paths reach the same resource. {@code /api/v1/bookmarks} is canonical, but
 	 * {@code /bookmarks} is the path the API was specified with — without the second mapping a
 	 * caller pasting that one gets a 404 for a resource that is there.

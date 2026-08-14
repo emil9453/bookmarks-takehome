@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import org.hibernate.validator.constraints.URL;
 
 import jakarta.validation.constraints.NotBlank;
@@ -42,10 +44,15 @@ final class BookmarkDtos {
 	 * <p>{@code favourite} is a boxed {@code Boolean} because it is optional. Jackson 3 refuses
 	 * to map an absent field onto a primitive rather than defaulting it — as a {@code boolean}
 	 * every request that left the field out was rejected.
+	 *
+	 * <p>{@code favorite} is accepted as an alias for the same reason the query parameter takes
+	 * both spellings: the API was specified with the American one. Unknown fields are a 400 here,
+	 * so without the alias a body copied from the specification is rejected outright — and an
+	 * alias is not the same as loosening that rule, because a genuine typo still fails.
 	 */
 	record CreateRequest(@NotBlank @URL(regexp = HTTP_ONLY, message = WEB_LINK) @Size(max = 2048) String url,
 			@NotBlank @Size(max = 200) String title, Set<@NotBlank @Size(max = 50) String> tags,
-			@Size(max = 2000) String notes, Boolean favourite) {
+			@Size(max = 2000) String notes, @JsonAlias("favorite") Boolean favourite) {
 	}
 
 	/**
@@ -57,7 +64,8 @@ final class BookmarkDtos {
 	 */
 	record UpdateRequest(@URL(regexp = HTTP_ONLY, message = WEB_LINK) @Size(max = 2048) String url,
 			@Pattern(regexp = NOT_BLANK, message = "must not be blank") @Size(max = 200) String title,
-			Set<@NotBlank @Size(max = 50) String> tags, @Size(max = 2000) String notes, Boolean favourite) {
+			Set<@NotBlank @Size(max = 50) String> tags, @Size(max = 2000) String notes,
+			@JsonAlias("favorite") Boolean favourite) {
 	}
 
 	record BookmarkResponse(Long id, String url, String title, Set<String> tags, String notes, boolean favourite,
