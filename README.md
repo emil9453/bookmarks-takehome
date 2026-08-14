@@ -15,6 +15,9 @@ Take-home task for BirSearch.
 | **Android APK** | [BirBookmarks-1.0.apk](https://github.com/emil9453/bookmarks-takehome/releases/download/v1.0/BirBookmarks-1.0.apk) ([release](https://github.com/emil9453/bookmarks-takehome/releases/tag/v1.0)) |
 | **Decisions & trade-offs** | [NOTES.md](NOTES.md) |
 
+> The APK is built from tag `v1.0`. Commits after it touch the backend, the instrumented
+> tests and comments only — no app source, so the binary above matches `main`.
+
 > Self-hosted on a small VPS: Docker under Coolify, behind Traefik with a Let's Encrypt
 > certificate. It does not sleep, so the first request is as fast as the rest — around 250ms.
 > It ran on a free tier first; that tier slept after 15 minutes idle and woke in 60 to 120+
