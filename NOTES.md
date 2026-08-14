@@ -29,21 +29,36 @@ bug at fifty rows, not a scale concern.
 
 **Both spellings bind, and both base paths resolve.** An unknown query parameter is not an error in
 Spring MVC — `?favorite=true` answered `200` with the filter silently dropped, which is the worst
-way for a spelling to fail. `/bookmarks` maps alongside `/api/v1/bookmarks` for the same reason.
+way for a spelling to fail. The request body needed the same treatment for the opposite reason:
+unknown fields there *are* a `400`, so a create copied out of the specification was rejected
+outright. `favorite` is an alias on both request records; a genuine typo still fails.
+`/bookmarks` maps alongside `/api/v1/bookmarks` for the same reason.
 
 **On the phone:** no DI framework, no paging library, no local database. Three objects need
 constructing; the four states the brief names are four types in a sealed interface, where Paging 3
 would bury them inside `LoadState`.
 
-**What I accepted.** `LIKE '%q%'` cannot use an index — honest at 35 rows, wrong at 35,000. Offset
+**What I accepted.** `LIKE '%q%'` cannot use an index — honest at 32 rows, wrong at 32,000. Offset
 pagination walks the rows it discards. Both are right at this size and both are the first to change.
+
+## Testing
+
+Unit tests cover the ViewModels — the paging races and the query flow, where controlling when each
+response lands is the whole point. Every bug that actually reached the device, though, was a
+Compose-lifecycle bug that a JVM test structurally cannot see, so there are five instrumented tests
+over the two paths that kept breaking: which of the four states is on screen, and whether the add
+screen really leaves when it says it saved. A `saved` flag that flips while the screen stays put
+passes every test in the JVM suite. They inject a fake API, so they touch no deployed instance.
+
+The empty state is the case worth calling out: reaching it against a live backend means deleting
+every bookmark, so until it was asserted in a composition it was the one required state nobody had
+ever actually looked at.
 
 ## What I'd do with more time
 
 Postgres full-text search with a `tsvector` column and a GIN index; keyset pagination instead of
-offset; two Espresso tests over the add-then-return path, because every bug that actually reached
-the device was a Compose-lifecycle bug that unit tests structurally cannot see; and an undo on
-delete, which today is guarded by a confirmation dialog rather than being reversible.
+offset; and an undo on delete, which today is guarded by a confirmation dialog rather than being
+reversible.
 
 ## AI tools
 

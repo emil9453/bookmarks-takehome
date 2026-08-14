@@ -37,6 +37,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -108,4 +109,12 @@ dependencies {
     // Needed to drive viewModelScope: Dispatchers.Main does not exist in a JVM unit test, and
     // the paging races are only reachable by controlling when each response lands.
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // Instrumented tests. The unit tests cover the ViewModels; these cover the things only a
+    // composition can get wrong — which state is on screen, and whether a screen leaves when it
+    // says it did. They inject a fake API, so nothing here touches the deployed backend.
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
