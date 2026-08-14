@@ -132,7 +132,7 @@ one at a time, cancelling the job turned out **not** to be — the test still pa
 removing the cursor-equality check reproduced the duplicate ids. "I fixed it" was worth verifying
 by breaking it again on purpose.
 
-Three others in the same family, kept in full in [NOTES-scratch.md](NOTES-scratch.md):
+Three others in the same family:
 
 - **Jackson 3 flipped a default.** A primitive `boolean favourite` on a request record made every
   POST that merely *omitted* the field return `400 "Failed to read request"`. Boot 4 ships Jackson
