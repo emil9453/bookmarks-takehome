@@ -40,7 +40,7 @@ data class BookmarkQuery(
 /**
  * The four states, as types rather than as a combination of booleans that might be unreachable.
  *
- * ponytail: this is why there is no paging library — Paging 3 owns the loading model and buries
+ * This is why there is no paging library — Paging 3 owns the loading model and buries
  * these cases inside `LoadState`. Revisit if the list ever needs placeholders or cache-backed
  * paging.
  */
@@ -97,7 +97,7 @@ class BookmarkListViewModel(
     /**
      * Tags offered as filter chips, accumulated from every row seen so far.
      *
-     * ponytail: the API has no tags endpoint and adding one is not worth a round trip. The
+     * The API has no tags endpoint and adding one is not worth a round trip. The
      * consequence, stated rather than hidden: a tag that only appears in a page not yet loaded is
      * not offered until it loads.
      */

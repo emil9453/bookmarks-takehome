@@ -11,7 +11,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 /**
  * Hand-written wiring instead of a DI framework.
  *
- * ponytail: there are three things to construct — a Json, an OkHttpClient and a Retrofit. Hilt
+ * There are three things to construct — a Json, an OkHttpClient and a Retrofit. Hilt
  * would add a compiler plugin, a generated component and an Application subclass to save
  * nothing. Add it at roughly five injectables, or at the first multi-module split, and the seam
  * is this object.

@@ -23,7 +23,7 @@ data class Bookmark(
     val tags: List<String> = emptyList(),
     val notes: String? = null,
     val favourite: Boolean = false,
-    // ponytail: kept as the raw ISO-8601 string. Nothing formats a date yet, and parsing it
+    // Kept as the raw ISO-8601 string. Nothing formats a date yet, and parsing it
     // would mean adding kotlinx-datetime for a field that is currently only carried around.
     val createdAt: String,
     val updatedAt: String,
