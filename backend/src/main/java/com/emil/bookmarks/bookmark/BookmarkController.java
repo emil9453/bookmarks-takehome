@@ -26,11 +26,13 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 
 /**
- * Versioned path, so a breaking change has an obvious home in {@code /api/v2} rather than
- * forcing every client to update on the same day.
+ * {@code /api/v1/bookmarks} is canonical — a breaking change then has an obvious home in
+ * {@code /api/v2} rather than forcing every client to move on the same day. {@code /bookmarks}
+ * is mapped as well because that is the path the API was specified with, and a caller who uses
+ * it should get the resource rather than a 404.
  */
 @RestController
-@RequestMapping("/api/v1/bookmarks")
+@RequestMapping({ "/api/v1/bookmarks", "/bookmarks" })
 class BookmarkController {
 
 	private final BookmarkService service;
@@ -40,27 +42,17 @@ class BookmarkController {
 	}
 
 	/**
-	 * The one list endpoint. {@code ?q=} searches, {@code ?tag=} and {@code ?favourite=} filter,
-	 * and they combine freely — all three, any one, or none, which is the plain list.
+	 * The one list endpoint: {@code ?q=} searches, {@code ?tag=} and {@code ?favourite=} filter,
+	 * and they combine freely. With {@code ?q=} results come back ranked and {@code ?sort=} is a
+	 * tiebreak between equally good matches; without it, newest first.
 	 *
-	 * <p>With {@code ?q=} the results come back ranked, best first, and {@code ?sort=} is
-	 * demoted to a tiebreak between equally good matches rather than ignored — asking for
-	 * relevance and for alphabetical order at the same time has to resolve one way or the
-	 * other, and relevance is the point of the search. Without {@code ?q=} it is newest first
-	 * by default and {@code ?sort=title,asc} overrides that. The page size ceiling is
-	 * {@code spring.data.web.pageable.max-page-size}, which the argument resolver applies — so
-	 * this keeps taking a {@code Pageable} parameter rather than building one from a request
-	 * field, which would drop the cap with no compile error.
+	 * <p>Takes a {@code Pageable} rather than a page-size field so the argument resolver applies
+	 * {@code spring.data.web.pageable.max-page-size} — building one by hand drops that cap with
+	 * no compile error. Returns {@link PagedModel} rather than {@code Page}, whose JSON is the
+	 * serialised form of an internal Spring Data type and not a stable contract to parse against.
 	 *
-	 * <p>Returns a {@link PagedModel} rather than the {@code Page} itself: the JSON shape of
-	 * {@code Page} is the serialised form of an internal Spring Data type and is not a stable
-	 * contract, which matters when an Android client is parsing it.
-	 *
-	 * <p>{@code favorite} is accepted alongside {@code favourite} because an unknown query
-	 * parameter is not an error — Spring drops it and answers 200 with the filter silently
-	 * ignored, which is the worst way for a spelling to fail. A request body spelling it the
-	 * American way already gets a 400 naming the field; the query string had no such backstop.
-	 * British stays canonical, and is what every response and the Android client use.
+	 * <p>{@code favorite} binds alongside {@code favourite}: an unknown query parameter is not an
+	 * error, so the American spelling answered 200 with the filter silently dropped.
 	 */
 	@GetMapping
 	PagedModel<BookmarkResponse> list(@RequestParam(required = false) String q,

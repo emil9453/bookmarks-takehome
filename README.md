@@ -74,6 +74,10 @@ PATCH  /api/v1/bookmarks/{id}
 DELETE /api/v1/bookmarks/{id}
 ```
 
+`/api/v1/bookmarks` is canonical, so a breaking change has an obvious home in `/api/v2`.
+**`/bookmarks` maps to the same resource**, because that is the path the API was specified with
+and a caller who uses it should get the resource rather than a `404`.
+
 Interactive docs, generated from the controllers rather than hand-written, are at
 [`/swagger-ui.html`](https://bookmarks.178.104.76.109.sslip.io/swagger-ui.html).
 
@@ -81,11 +85,15 @@ Search covers title, tags and notes, and results are ranked — a title match ou
 match, which outranks a match in the notes, and the scores add up, so a bookmark matching in
 two places outranks one matching in a single place. `q`, `tag` and `favourite` combine freely.
 
-`?favorite=` is accepted as well as `?favourite=`. An unknown query parameter is not an error
-in Spring MVC — it is dropped and the request answers `200` with the filter silently ignored,
-which is the worst way for a spelling to fail. Responses and the Android client use the British
+`?favorite=` binds as well as `?favourite=`. An unknown query parameter is not an error in
+Spring MVC — it is dropped and the request answers `200` with the filter silently ignored, which
+is the worst way for a spelling to fail. Responses and the Android client use the British
 spelling throughout; a request *body* spelling it the other way already gets a `400` naming the
 field.
+
+The deployed instance is rate limited at the proxy — 60 requests a minute per source address,
+bursting to 20, and a 256KB body cap. Clicking around never reaches it; a script will.
+[`backend/README.md`](backend/README.md) has the configuration and the reasoning.
 
 `backend/seed.sh [base-url]` fills an instance with a realistic reading list, arranged so that
 one query shows the whole ranking rule at once:

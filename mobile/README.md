@@ -4,8 +4,11 @@ Native Android client for the Bookmarks API. Kotlin, Jetpack Compose, Material 3
 
 It wears the Birbank design language — their red, their typeface (Onest), their mark — because the
 API and the client are separable from presentation, and the cheapest way to show that is to change
-the skin without touching a request, a model or a ViewModel. The reasoning is in
-[NOTES.md](../NOTES.md).
+the skin without touching a request, a model or a ViewModel.
+
+Both themes ship. `BirBookmarksTheme` follows `isSystemInDarkTheme()`, so the app is white cards on
+a grey page in light mode and the same layout on near-black in dark. Every colour in both schemes
+is declared in `ui/theme/Colour.kt` — no Material default is ever constructed.
 
 ## The APK
 

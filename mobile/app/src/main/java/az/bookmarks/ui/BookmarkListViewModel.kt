@@ -38,14 +38,11 @@ data class BookmarkQuery(
 }
 
 /**
- * The states the brief names, as types. Which one is showing is a question the type system
- * answers, so "show me the error state" is a thing that can be demonstrated rather than a
- * combination of booleans that might be unreachable.
+ * The four states, as types rather than as a combination of booleans that might be unreachable.
  *
- * ponytail: this is why there is no paging library. Paging 3 owns the loading model and buries
- * these cases inside `LoadState` and `CombinedLoadStates`; a sealed interface makes them literal
- * for the price of the load-more call below. Worth revisiting if the list ever needs placeholders
- * or cache-backed paging.
+ * ponytail: this is why there is no paging library — Paging 3 owns the loading model and buries
+ * these cases inside `LoadState`. Revisit if the list ever needs placeholders or cache-backed
+ * paging.
  */
 sealed interface BookmarksUiState {
 
@@ -55,9 +52,8 @@ sealed interface BookmarksUiState {
     data object Empty : BookmarksUiState
 
     /**
-     * A search or filter that matched nothing. Deliberately a different state from [Empty]: one
-     * means "you have not saved anything", the other means "nothing here matches that". Telling a
-     * first-time user to add their first bookmark because a search missed would be wrong.
+     * A search or filter that matched nothing — a different state from [Empty], which means
+     * nothing is saved at all. The two need different words and a different action.
      */
     data class NoResults(val query: BookmarkQuery) : BookmarksUiState
 
@@ -101,11 +97,9 @@ class BookmarkListViewModel(
     /**
      * Tags offered as filter chips, accumulated from every row seen so far.
      *
-     * ponytail: the API has no endpoint listing tags, and adding one to populate a chip row is
-     * not worth a round trip. The consequence is worth saying out loud rather than hiding: a tag
-     * that only appears on a bookmark in a page not yet loaded is not offered until it loads.
-     * Sorted here because this is presentation — the ranked results themselves are never
-     * re-sorted.
+     * ponytail: the API has no tags endpoint and adding one is not worth a round trip. The
+     * consequence, stated rather than hidden: a tag that only appears in a page not yet loaded is
+     * not offered until it loads.
      */
     private val _knownTags = MutableStateFlow(emptyList<String>())
     val knownTags: StateFlow<List<String>> = _knownTags.asStateFlow()
@@ -155,15 +149,13 @@ class BookmarkListViewModel(
     fun clearQuery() = _query.update { BookmarkQuery() }
 
     /**
-     * Called every time the list screen resumes, so a bookmark added or deleted elsewhere shows
-     * up without each screen having to report back what it did. The first resume is the one that
-     * arrives with the initial load already running, so it is skipped.
+     * Called every time the list screen resumes, so a bookmark added or deleted elsewhere shows up
+     * without each screen reporting back. The first resume arrives with the initial load already
+     * running, so it is skipped.
      *
-     * The flag lives here rather than in a `remember` in the composable, and that is the whole
-     * point: Navigation Compose disposes the list's composition when another destination is shown,
-     * so a remembered flag is back to its initial value on return and the reload never happens —
-     * which is exactly the bug this replaced. The ViewModel outlives the composition; the
-     * composable does not.
+     * The flag lives here and not in a `remember`: Navigation Compose disposes this composition
+     * when another destination shows, so a remembered flag is back to its initial value on return
+     * and the reload never happens. The ViewModel outlives the composition; the composable does not.
      */
     fun onScreenResumed() {
         if (resumedBefore) reload() else resumedBefore = true
@@ -319,7 +311,7 @@ class BookmarkListViewModel(
         const val FIRST_PAGE = 0
         const val PAGE_SIZE = 20
 
-        /** The brief asks for roughly a third of a second, and calls it out specifically. */
+        /** The brief asks for a debounce without naming an interval. 300ms is the usual choice. */
         const val SEARCH_DEBOUNCE_MS = 300L
     }
 }

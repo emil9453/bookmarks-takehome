@@ -26,23 +26,15 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import tools.jackson.databind.exc.PropertyBindingException;
 
 /**
- * The one place errors turn into responses; no endpoint does any of this itself.
+ * The one place errors turn into responses. Every one is an RFC 9457 problem detail — Spring's
+ * own type, and the shape the framework already uses for the errors it raises, so a client has
+ * one error format to parse rather than two.
  *
- * <p>Every response is an RFC 9457 problem detail — Spring's own type, and the same shape the
- * framework already uses for the errors it raises, so a client has one error format to parse
- * rather than two.
- *
- * <p>This is a deliberate departure from the house style, which wants a
- * {@code {success, data, error}} envelope around everything. An envelope would mean a generic
- * wrapper type around every model on the Android side; problem details are a published standard
- * that ships in the framework, and only errors carry the extra shape.
- *
- * <p><b>Why this extends {@link ResponseEntityExceptionHandler} rather than standing alone.</b>
- * The base class already turns the framework's own exceptions into the right status — 404 for
- * an unknown path, 405 for the wrong method, 400 for an unparseable path variable, 415, 406.
- * Extending it keeps all of that and overrides only the two responses worth improving. The
- * first attempt here was a bare advice ordered ahead of Spring's, which meant the catch-all
- * below intercepted every one of those and answered 500.
+ * <p>Extends {@link ResponseEntityExceptionHandler} rather than standing alone: the base class
+ * already maps the framework's own exceptions to the right status — 404, 405, 415, 406, 400 for
+ * an unparseable path variable — and this overrides only the two responses worth improving. A
+ * bare advice ordered ahead of Spring's instead sends all of those through the catch-all below
+ * and answers 500.
  */
 @RestControllerAdvice
 class ApiExceptionHandler extends ResponseEntityExceptionHandler {
@@ -60,13 +52,9 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	/**
-	 * Failed constraints, reported per field. The inherited version returns a problem detail
-	 * whose detail reads "Invalid request content." and says nothing about which field was
-	 * wrong — enough to know the request failed, not enough to put a message under the right
-	 * input box on the phone.
-	 *
-	 * <p>The names in {@code errors} are the JSON field names, so a client can look them up
-	 * directly against what it sent.
+	 * Failed constraints, reported per field. The inherited version says only "Invalid request
+	 * content." — enough to know the request failed, not enough to put a message under the right
+	 * input box. Keys in {@code errors} are the JSON field names the client sent.
 	 */
 	@Override
 	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
@@ -89,8 +77,8 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
 	/**
 	 * Malformed JSON, or a field the API does not have. The inherited detail is "Failed to read
-	 * request", which tells a client nothing it can act on; an unknown field is almost always a
-	 * typo, so the response names it.
+	 * request", which a client cannot act on; an unknown field is almost always a typo, so the
+	 * response names it.
 	 */
 	@Override
 	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
@@ -107,13 +95,11 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	/**
-	 * Anything unforeseen — the database being unreachable is the realistic one. The framework's
-	 * own exceptions never reach this, because the base class claims them by a more specific
-	 * handler.
+	 * Anything unforeseen — realistically, the database being unreachable. The framework's own
+	 * exceptions never reach this; the base class claims them by a more specific handler.
 	 *
-	 * <p>The caller gets a fixed sentence. The cause is logged with the request's trace id, so
-	 * it stays recoverable from the logs without a stack trace or an internal class name
-	 * crossing the wire.
+	 * <p>The caller gets a fixed sentence and the cause is logged against the request's trace id,
+	 * so it stays recoverable without a stack trace or an internal class name crossing the wire.
 	 */
 	@ExceptionHandler(Exception.class)
 	ProblemDetail handleUnexpected(Exception ex) {

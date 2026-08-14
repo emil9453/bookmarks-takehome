@@ -25,16 +25,14 @@ class BookmarkService {
 	}
 
 	/**
-	 * Sort keys the API offers. An allow-list rather than "whatever the entity has": entity
-	 * field names are not a contract, and an unknown one otherwise reaches Spring Data and
-	 * surfaces as a 500 for what is a client typo.
+	 * Sort keys the API offers. An allow-list, because an unknown key otherwise reaches Spring
+	 * Data and surfaces as a 500 for what is a client typo.
 	 */
 	private static final Set<String> SORTABLE = Set.of("createdAt", "updatedAt", "title", "favourite", "id");
 
 	/**
-	 * Maps to DTOs inside the transaction on purpose. The tag collection is lazy and
-	 * {@code open-in-view} is off, so returning entities and mapping in the controller would
-	 * fail on the first bookmark that has tags.
+	 * Maps to DTOs inside the transaction: the tag collection is lazy and {@code open-in-view} is
+	 * off, so mapping in the controller would fail on the first bookmark that has tags.
 	 */
 	@Transactional(readOnly = true)
 	Page<BookmarkResponse> search(String query, String tag, Boolean favourite, Pageable pageable) {
@@ -43,10 +41,9 @@ class BookmarkService {
 	}
 
 	/**
-	 * Builds the LIKE pattern, with the caller's own wildcards escaped — searching for
-	 * {@code 100%} should look for the characters {@code 100%}, not for "100 followed by
-	 * anything". Tags are stored lower-cased, and the query lower-cases title and notes, so the
-	 * whole comparison is case-insensitive.
+	 * The LIKE pattern, with the caller's own wildcards escaped: searching for {@code 100%} looks
+	 * for those characters, not "100 followed by anything". Tags are stored lower-cased and the
+	 * query lower-cases title and notes, so the comparison is case-insensitive throughout.
 	 */
 	private static String likePattern(String query) {
 		String normalised = normalise(query);
@@ -65,11 +62,10 @@ class BookmarkService {
 	/**
 	 * Appends the id to whatever sort was asked for, making the order total.
 	 *
-	 * <p>The default sort on the controller is only a fallback — a {@code ?sort=} parameter
-	 * replaces it wholesale, so {@code ?sort=title,asc} would otherwise order by a column full
-	 * of ties. Each page is a separate query and the database is free to break those ties
-	 * differently every time, so a bookmark can come back on two pages and another on none.
-	 * Applying the tiebreaker here rather than in the annotation means no caller can drop it.
+	 * <p>A {@code ?sort=} parameter replaces the controller's default wholesale, so
+	 * {@code ?sort=title,asc} orders by a column full of ties. Each page is a separate query and
+	 * the database may break those ties differently every time, putting a bookmark on two pages
+	 * and another on none. Applied here rather than in the annotation so no caller can drop it.
 	 */
 	private static Pageable totalOrder(Pageable pageable) {
 		pageable.getSort().forEach((order) -> {

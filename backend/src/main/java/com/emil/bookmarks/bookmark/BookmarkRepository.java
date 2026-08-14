@@ -9,35 +9,25 @@ import org.springframework.data.repository.query.Param;
 public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
 
 	/**
-	 * Text search, tag filter and favourites filter in one query — any of them, in any
-	 * combination, or none at all, in which case this is the plain list.
+	 * Text search, tag filter and favourites filter in one query, each skipped by its own
+	 * {@code :param is null} guard.
 	 *
-	 * <p>Each filter is skipped by its own {@code :param is null} guard. Written in JPQL rather
-	 * than native SQL for exactly this reason: Hibernate binds a typed null, where a bare SQL
-	 * null makes Postgres complain that it cannot determine the parameter's type — a query that
-	 * works locally and fails once deployed.
+	 * <p>JPQL rather than native SQL for that reason: Hibernate binds a typed null, where a bare
+	 * SQL null makes Postgres refuse to infer the parameter's type — a query that works on H2 and
+	 * fails once deployed.
 	 *
-	 * <p><b>Ranking, in two keys.</b> First the weighted score: title 3, tag 2, notes 1, added
-	 * together rather than stopping at the first field that hits, which is what makes a
-	 * bookmark matching the title <em>and</em> a tag outrank one matching only the title.
+	 * <p><b>Ranking, in two keys.</b> The weighted score first: title 3, tag 2, notes 1, summed
+	 * rather than stopping at the first field that hits, so title <em>and</em> tag outranks title
+	 * alone. Then the number of fields that matched, because the weights collide — a title match
+	 * alone scores 3 and so does tag plus notes. Scoring runs in the database, so page one holds
+	 * the best results overall rather than the best of whichever rows the page window caught.
 	 *
-	 * <p>Then the number of fields that matched at all, because the weights collide: a title
-	 * match alone scores 3, and so does a tag plus a notes match. Without a second key that tie
-	 * falls through to recency, so which one a reviewer sees first depends on the order the two
-	 * were saved in. Breaking it on breadth keeps the promise that matching in more places
-	 * ranks higher, and makes the answer a rule rather than an accident of insertion order.
+	 * <p>Spring Data appends the {@code Pageable}'s own ordering after both keys, which is where
+	 * the recency tiebreak and the final unique id come from: scores are small integers that tie
+	 * constantly, and a tie with no unique key underneath puts a bookmark on two pages or none.
 	 *
-	 * <p>Scoring happens in the database, not in Java, so page one holds the best results
-	 * overall rather than the best of whichever rows the page window happened to catch.
-	 *
-	 * <p>These two keys are not the whole sort. Spring Data appends the {@code Pageable}'s own
-	 * ordering after them, which is where the recency tiebreak and the final unique id come
-	 * from — scores are small integers that tie constantly, and ties with no unique key
-	 * underneath let a bookmark appear on two pages or on none.
-	 *
-	 * <p>No {@code countQuery} here on purpose: Spring Data derives one from this query's own
-	 * {@code where} clause, which cannot then drift out of step with it the way a hand-written
-	 * copy of the same eight lines would.
+	 * <p>No {@code countQuery}: Spring Data derives one from this query's {@code where} clause,
+	 * so it cannot drift out of step the way a hand-written copy would.
 	 */
 	@Query("""
 			select b from Bookmark b

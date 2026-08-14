@@ -11,11 +11,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * What the API speaks. Entities never leave the service layer — {@code open-in-view} is off, so
- * a lazily loaded tag collection reaching the serialiser would throw rather than quietly issue
- * another query, and the database schema stays free to change without breaking clients.
- *
- * <p>The three records live in one file because they are one contract, read together.
+ * What the API speaks. Entities never leave the service layer: {@code open-in-view} is off, so a
+ * lazily loaded tag collection reaching the serialiser throws rather than quietly issuing another
+ * query, and the schema stays free to change without breaking clients.
  */
 final class BookmarkDtos {
 
@@ -30,10 +28,9 @@ final class BookmarkDtos {
 	private static final String NOT_BLANK = ".*\\S.*";
 
 	/**
-	 * {@code @URL} on its own accepts any scheme {@code java.net.URL} knows, so
-	 * {@code file:///etc/passwd} and {@code ftp://…} would both pass. A read-it-later app saves
-	 * web pages; anything else is a mistake worth telling the caller about. The extra pattern
-	 * narrows it to http and https without needing a second annotation.
+	 * {@code @URL} alone accepts any scheme {@code java.net.URL} knows, so
+	 * {@code file:///etc/passwd} and {@code ftp://…} both pass. The pattern narrows it to http
+	 * and https without a second annotation.
 	 */
 	private static final String HTTP_ONLY = "^https?://.+";
 

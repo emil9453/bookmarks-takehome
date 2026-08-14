@@ -202,6 +202,28 @@ class BookmarkApiTests {
 			.isEqualTo(1);
 	}
 
+	/**
+	 * Both base paths reach the same resource. {@code /api/v1/bookmarks} is canonical, but
+	 * {@code /bookmarks} is the path the API was specified with — without the second mapping a
+	 * caller pasting that one gets a 404 for a resource that is there.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/v1/bookmarks", "/bookmarks" })
+	void bothBasePathsReachTheResource(String base) {
+		long id = create("https://spring.io", "Spring");
+
+		this.rest.get()
+			.uri(base + "?q=spring")
+			.exchange()
+			.expectStatus()
+			.isOk()
+			.expectBody()
+			.jsonPath("$.page.totalElements")
+			.isEqualTo(1);
+
+		this.rest.get().uri(base + "/" + id).exchange().expectStatus().isOk();
+	}
+
 	private long create(String url, String title) {
 		return create(url, title, Set.of("tag"));
 	}
