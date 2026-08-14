@@ -1,5 +1,6 @@
 package az.bookmarks.ui
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import az.bookmarks.data.BookmarksApi
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -26,6 +28,7 @@ data class AddBookmarkForm(
     val tags: List<String> = emptyList(),
     /** The tag being typed, before it is confirmed into [tags]. */
     val tagDraft: String = "",
+    val favourite: Boolean = false,
     val urlError: String? = null,
     val titleError: String? = null,
     val tagsError: String? = null,
@@ -37,27 +40,67 @@ data class AddBookmarkForm(
     val saved: Boolean = false,
 )
 
-class AddBookmarkViewModel(
+/**
+ * [saved] is first, and the constructor is `@JvmOverloads`, so that the generated
+ * `(SavedStateHandle)` overload is the one `SavedStateViewModelFactory` looks for. Without that
+ * exact signature the factory silently falls back to the no-arg constructor and hands back a
+ * ViewModel holding an empty handle — it compiles, it runs, and nothing is ever restored.
+ */
+class AddBookmarkViewModel @JvmOverloads constructor(
+    private val saved: SavedStateHandle = SavedStateHandle(),
     private val api: BookmarksApi = Network.bookmarks,
 ) : ViewModel() {
 
-    private val _form = MutableStateFlow(AddBookmarkForm())
+    // A ViewModel survives rotation but not process death, and the realistic way to lose this form
+    // is to leave for a browser to copy the link and come back after Android has reclaimed the
+    // process. Navigation restores the Add screen either way, so without this the user returns to
+    // the screen they left with every field silently blank.
+    private val _form = MutableStateFlow(
+        AddBookmarkForm(
+            url = saved[KEY_URL] ?: "",
+            title = saved[KEY_TITLE] ?: "",
+            notes = saved[KEY_NOTES] ?: "",
+            tags = saved.get<ArrayList<String>>(KEY_TAGS) ?: emptyList(),
+            tagDraft = saved[KEY_TAG_DRAFT] ?: "",
+            favourite = saved[KEY_FAVOURITE] ?: false,
+        ),
+    )
     val form: StateFlow<AddBookmarkForm> = _form.asStateFlow()
 
     private var saveJob: Job? = null
 
+    /**
+     * Only what was typed. `saving` and the validation messages are deliberately not restored: a
+     * process death mid-request would otherwise come back with a permanently disabled button.
+     */
+    private fun persist(form: AddBookmarkForm) {
+        saved[KEY_URL] = form.url
+        saved[KEY_TITLE] = form.title
+        saved[KEY_NOTES] = form.notes
+        saved[KEY_TAGS] = ArrayList(form.tags)
+        saved[KEY_TAG_DRAFT] = form.tagDraft
+        saved[KEY_FAVOURITE] = form.favourite
+    }
+
     // Clearing the field's error as it is edited: leaving a stale message under a box the user is
     // actively fixing reads as though the fix did not register.
-    fun onUrlChange(value: String) = _form.update { it.copy(url = value, urlError = null) }
+    fun onUrlChange(value: String) =
+        persist(_form.updateAndGet { it.copy(url = value, urlError = null) })
 
-    fun onTitleChange(value: String) = _form.update { it.copy(title = value, titleError = null) }
+    fun onTitleChange(value: String) =
+        persist(_form.updateAndGet { it.copy(title = value, titleError = null) })
 
-    fun onNotesChange(value: String) = _form.update { it.copy(notes = value, notesError = null) }
+    fun onNotesChange(value: String) =
+        persist(_form.updateAndGet { it.copy(notes = value, notesError = null) })
 
-    fun onTagDraftChange(value: String) = _form.update { it.copy(tagDraft = value, tagsError = null) }
+    fun onTagDraftChange(value: String) =
+        persist(_form.updateAndGet { it.copy(tagDraft = value, tagsError = null) })
+
+    fun onFavouriteChange(value: Boolean) =
+        persist(_form.updateAndGet { it.copy(favourite = value) })
 
     /** Confirms the typed tag. Duplicates are dropped rather than rejected — the intent is clear. */
-    fun onTagConfirmed() = _form.update { form ->
+    fun onTagConfirmed() = persisting { form ->
         val tag = form.tagDraft.trim()
         when {
             tag.isEmpty() -> form.copy(tagDraft = "")
@@ -67,7 +110,11 @@ class AddBookmarkViewModel(
         }
     }
 
-    fun onTagRemoved(tag: String) = _form.update { it.copy(tags = it.tags - tag) }
+    fun onTagRemoved(tag: String) = persisting { it.copy(tags = it.tags - tag) }
+
+    /** Update and mirror in one step, for the changes too long to fit on one line. */
+    private fun persisting(block: (AddBookmarkForm) -> AddBookmarkForm) =
+        persist(_form.updateAndGet(block))
 
     /**
      * Validates on the phone first, then sends.
@@ -94,7 +141,7 @@ class AddBookmarkViewModel(
                         title = validated.title.trim(),
                         tags = validated.tags,
                         notes = validated.notes.trim().ifBlank { null },
-                        favourite = false,
+                        favourite = validated.favourite,
                     ),
                 )
                 _form.update { it.copy(saving = false, saved = true) }
@@ -113,6 +160,13 @@ class AddBookmarkViewModel(
         const val MAX_TITLE = 200
         const val MAX_TAG = 50
         const val MAX_NOTES = 2000
+
+        const val KEY_URL = "url"
+        const val KEY_TITLE = "title"
+        const val KEY_NOTES = "notes"
+        const val KEY_TAGS = "tags"
+        const val KEY_TAG_DRAFT = "tagDraft"
+        const val KEY_FAVOURITE = "favourite"
     }
 
     private fun AddBookmarkForm.validated(): AddBookmarkForm {

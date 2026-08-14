@@ -1,5 +1,6 @@
 package az.bookmarks.ui
 
+import androidx.lifecycle.SavedStateHandle
 import az.bookmarks.data.Bookmark
 import az.bookmarks.data.BookmarkPatch
 import az.bookmarks.data.BookmarksApi
@@ -40,7 +41,7 @@ class AddBookmarkViewModelTest {
     @Test
     fun aBlankTitleAndABadLinkAreCaughtWithoutASingleRequest() = runTest(dispatcher) {
         val api = FakeCreateApi()
-        val viewModel = AddBookmarkViewModel(api)
+        val viewModel = AddBookmarkViewModel(api = api)
 
         viewModel.onUrlChange("ftp://files.example.com")
         viewModel.save()
@@ -56,7 +57,7 @@ class AddBookmarkViewModelTest {
     @Test
     fun aValidFormIsTrimmedAndBlankNotesBecomeNull() = runTest(dispatcher) {
         val api = FakeCreateApi()
-        val viewModel = AddBookmarkViewModel(api)
+        val viewModel = AddBookmarkViewModel(api = api)
 
         viewModel.onUrlChange("  https://kotlinlang.org  ")
         viewModel.onTitleChange("  Kotlin  ")
@@ -77,7 +78,7 @@ class AddBookmarkViewModelTest {
 
     @Test
     fun tagsAreConfirmedOneAtATimeDeduplicatedAndRemovable() = runTest(dispatcher) {
-        val viewModel = AddBookmarkViewModel(FakeCreateApi())
+        val viewModel = AddBookmarkViewModel(api = FakeCreateApi())
 
         viewModel.onTagDraftChange("kotlin")
         viewModel.onTagConfirmed()
@@ -105,7 +106,7 @@ class AddBookmarkViewModelTest {
                 """.trimIndent(),
             )
         }
-        val viewModel = AddBookmarkViewModel(api)
+        val viewModel = AddBookmarkViewModel(api = api)
 
         viewModel.onUrlChange("https://example.com")
         viewModel.onTitleChange("passes here, rejected there")
@@ -124,7 +125,7 @@ class AddBookmarkViewModelTest {
         val api = FakeCreateApi().apply {
             failWith = httpError(400, """{"errors":{"somethingElse":"is wrong"}}""")
         }
-        val viewModel = AddBookmarkViewModel(api)
+        val viewModel = AddBookmarkViewModel(api = api)
 
         viewModel.onUrlChange("https://example.com")
         viewModel.onTitleChange("Title")
@@ -137,7 +138,7 @@ class AddBookmarkViewModelTest {
     @Test
     fun aNetworkFailureBecomesAFormLevelMessageAndTheFormStaysUsable() = runTest(dispatcher) {
         val api = FakeCreateApi().apply { failWith = IOException("offline") }
-        val viewModel = AddBookmarkViewModel(api)
+        val viewModel = AddBookmarkViewModel(api = api)
 
         viewModel.onUrlChange("https://example.com")
         viewModel.onTitleChange("Title")
@@ -154,7 +155,7 @@ class AddBookmarkViewModelTest {
     @Test
     fun tappingSaveTwiceSendsOneRequest() = runTest(dispatcher) {
         val api = FakeCreateApi().apply { blockCreate = true }
-        val viewModel = AddBookmarkViewModel(api)
+        val viewModel = AddBookmarkViewModel(api = api)
 
         viewModel.onUrlChange("https://example.com")
         viewModel.onTitleChange("Title")
@@ -174,7 +175,7 @@ class AddBookmarkViewModelTest {
 
     @Test
     fun editingAFieldClearsItsErrorSoAFixLooksLikeAFix() = runTest(dispatcher) {
-        val viewModel = AddBookmarkViewModel(FakeCreateApi())
+        val viewModel = AddBookmarkViewModel(api = FakeCreateApi())
 
         viewModel.save()
         advanceUntilIdle()
@@ -182,6 +183,60 @@ class AddBookmarkViewModelTest {
 
         viewModel.onUrlChange("https://example.com")
         assertNull(viewModel.form.value.urlError)
+    }
+
+    @Test
+    fun whatWasTypedSurvivesProcessDeath() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val typing = AddBookmarkViewModel(saved, FakeCreateApi())
+
+        typing.onUrlChange("https://example.com/half-written")
+        typing.onTitleChange("Half written")
+        typing.onNotesChange("Came back to it later.")
+        typing.onTagDraftChange("draft")
+        typing.onTagConfirmed()
+        typing.onFavouriteChange(true)
+
+        // The process dies here. Navigation restores the Add screen either way, so without the
+        // handle the user comes back to the screen they left with every field silently blank.
+        val restored = AddBookmarkViewModel(saved, FakeCreateApi()).form.value
+
+        assertEquals("https://example.com/half-written", restored.url)
+        assertEquals("Half written", restored.title)
+        assertEquals("Came back to it later.", restored.notes)
+        assertEquals(listOf("draft"), restored.tags)
+        assertTrue(restored.favourite)
+    }
+
+    @Test
+    fun aSaveInFlightIsNotRestoredAsAStuckButton() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val api = FakeCreateApi().apply { blockCreate = true }
+        val viewModel = AddBookmarkViewModel(saved, api)
+
+        viewModel.onUrlChange("https://example.com")
+        viewModel.onTitleChange("Fine")
+        viewModel.save()
+        advanceUntilIdle()
+        assertTrue("precondition: the save is still in flight", viewModel.form.value.saving)
+
+        // Restoring `saving` would come back to a disabled button with no request behind it.
+        assertFalse(AddBookmarkViewModel(saved, FakeCreateApi()).form.value.saving)
+        api.release()
+    }
+
+    @Test
+    fun theFavouriteTickIsWhatGetsSent() = runTest(dispatcher) {
+        val api = FakeCreateApi()
+        val viewModel = AddBookmarkViewModel(api = api)
+
+        viewModel.onUrlChange("https://example.com")
+        viewModel.onTitleChange("Starred")
+        viewModel.onFavouriteChange(true)
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertTrue("the tick must reach the request", api.created.single().favourite)
     }
 }
 

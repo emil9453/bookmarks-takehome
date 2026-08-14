@@ -43,7 +43,7 @@ pagination walks the rows it discards. Both are right at this size and both are 
 Postgres full-text search with a `tsvector` column and a GIN index; keyset pagination instead of
 offset; two Espresso tests over the add-then-return path, because every bug that actually reached
 the device was a Compose-lifecycle bug that unit tests structurally cannot see; and an undo on
-delete, which is currently immediate and irreversible.
+delete, which today is guarded by a confirmation dialog rather than being reversible.
 
 ## AI tools
 
@@ -51,7 +51,10 @@ Claude Code (Opus 5) for both halves, with Linear over MCP holding the acceptanc
 ticket closed against its own "done when" list. It accelerated the parts where I had no muscle
 memory: Compose layout, Kotlin `Flow` idiom, and the Boot 4 API surface, which has moved enough
 since Boot 3 that recall — mine and the model's — is unreliable. No design AI: the target was an
-existing product, so the palette, typeface and icon geometry were measured out of birbank.az.
+existing product, so the palette, typeface and icon geometry were measured out of birbank.az. One
+value is deliberately not theirs: their secondary grey is a decoration grey, and used here for URLs
+and captions it fails WCAG AA at 2.9:1 on a white card. It is darkened to clear 4.5:1. Brand
+fidelity loses to legibility on the one role that carries prose.
 
 ## Where a tool got it wrong
 

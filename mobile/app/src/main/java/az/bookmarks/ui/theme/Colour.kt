@@ -24,8 +24,15 @@ internal object Birbank {
     /** Body text and headings. */
     val Ink = Color(0xFF25282B)
 
-    /** Secondary text: captions, URLs, inactive navigation labels. */
-    val Grey = Color(0xFF9496AC)
+    /**
+     * Secondary text: captions, URLs, inactive navigation labels.
+     *
+     * Darkened from the site's own #9496AC, which is a decoration grey there and body text here.
+     * At #9496AC this fails WCAG AA everywhere it is used — 2.91:1 on a white card, 2.55:1 on the
+     * filled pill. This value holds 5.70:1 and 5.00:1 on the same two backgrounds, in the same
+     * blue-grey family. Brand fidelity loses to legibility on the one role that carries prose.
+     */
+    val Grey = Color(0xFF63657C)
 
     /** Hairlines, dividers and disabled foregrounds. */
     val Hairline = Color(0xFFCACCD1)

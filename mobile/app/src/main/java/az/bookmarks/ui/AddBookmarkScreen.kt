@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,7 +30,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -88,6 +93,7 @@ fun AddBookmarkScreen(
                             keyboardType = KeyboardType.Uri,
                             imeAction = ImeAction.Next,
                         ),
+                        colors = fieldColours(),
                         enabled = !form.saving,
                     )
 
@@ -100,6 +106,7 @@ fun AddBookmarkScreen(
                         isError = form.titleError != null,
                         supportingText = form.titleError?.let { message -> { Text(message) } },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        colors = fieldColours(),
                         enabled = !form.saving,
                     )
 
@@ -121,9 +128,39 @@ fun AddBookmarkScreen(
                         minLines = 3,
                         isError = form.notesError != null,
                         supportingText = form.notesError?.let { message -> { Text(message) } },
+                        colors = fieldColours(),
                         enabled = !form.saving,
                     )
 
+                    // The API has always taken `favourite` on create; until now the client sent a
+                    // hardcoded false, so the only way to star something was to save it and then
+                    // open it again.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+                                value = form.favourite,
+                                enabled = !form.saving,
+                                role = Role.Checkbox,
+                                onValueChange = viewModel::onFavouriteChange,
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Null, because the Row above owns the click: two targets for one control
+                        // is one thing for a screen reader to announce twice.
+                        Checkbox(
+                            checked = form.favourite,
+                            onCheckedChange = null,
+                            enabled = !form.saving,
+                        )
+                        Text(
+                            text = "Save to favourites",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
             }
 
@@ -194,6 +231,7 @@ private fun TagField(
                     TextButton(onClick = onConfirm) { Text("Add") }
                 }
             },
+            colors = fieldColours(),
             enabled = enabled,
         )
 
@@ -213,3 +251,15 @@ private fun TagField(
         }
     }
 }
+
+/**
+ * Focus drawn in ink rather than the brand red. `primary` and `error` are the same red in this
+ * palette, so Material's default focused border is pixel-identical to its error border — tabbing
+ * into a field looked exactly like failing validation in it. The error red is left alone; it is
+ * the state that should be shouting.
+ */
+@Composable
+private fun fieldColours() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+    focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+)
