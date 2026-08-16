@@ -35,8 +35,8 @@ class BookmarkService {
 	 * off, so mapping in the controller would fail on the first bookmark that has tags.
 	 */
 	@Transactional(readOnly = true)
-	Page<BookmarkResponse> search(String query, String tag, Boolean favourite, Pageable pageable) {
-		return this.repository.search(likePattern(query), normalise(tag), favourite, totalOrder(pageable))
+	Page<BookmarkResponse> search(String clientId, String query, String tag, Boolean favourite, Pageable pageable) {
+		return this.repository.search(clientId, likePattern(query), normalise(tag), favourite, totalOrder(pageable))
 			.map(BookmarkResponse::of);
 	}
 
@@ -80,12 +80,13 @@ class BookmarkService {
 	}
 
 	@Transactional(readOnly = true)
-	BookmarkResponse get(long id) {
-		return BookmarkResponse.of(find(id));
+	BookmarkResponse get(String clientId, long id) {
+		return BookmarkResponse.of(find(clientId, id));
 	}
 
-	BookmarkResponse create(CreateRequest request) {
+	BookmarkResponse create(String clientId, CreateRequest request) {
 		Bookmark bookmark = new Bookmark();
+		bookmark.setClientId(clientId);
 		bookmark.setUrl(request.url());
 		bookmark.setTitle(request.title());
 		bookmark.setNotes(request.notes());
@@ -95,8 +96,8 @@ class BookmarkService {
 	}
 
 	/** Null fields mean "not supplied", so a favourite toggle is a one-field request. */
-	BookmarkResponse update(long id, UpdateRequest request) {
-		Bookmark bookmark = find(id);
+	BookmarkResponse update(String clientId, long id, UpdateRequest request) {
+		Bookmark bookmark = find(clientId, id);
 		if (request.url() != null) {
 			bookmark.setUrl(request.url());
 		}
@@ -119,14 +120,19 @@ class BookmarkService {
 		return BookmarkResponse.of(bookmark);
 	}
 
-	void delete(long id) {
+	void delete(String clientId, long id) {
 		// Checked first so deleting something that is already gone is a 404 rather than a
 		// silent success. deleteById alone would not tell us either way.
-		this.repository.delete(find(id));
+		this.repository.delete(find(clientId, id));
 	}
 
-	private Bookmark find(long id) {
-		return this.repository.findById(id).orElseThrow(() -> new BookmarkNotFoundException(id));
+	/**
+	 * Scoped by client, so another install's bookmark is a 404 rather than a 403 — the second
+	 * would confirm the row exists, which is the one thing a caller guessing ids wants to know.
+	 */
+	private Bookmark find(String clientId, long id) {
+		return this.repository.findByIdAndClientId(id, clientId)
+			.orElseThrow(() -> new BookmarkNotFoundException(id));
 	}
 
 }

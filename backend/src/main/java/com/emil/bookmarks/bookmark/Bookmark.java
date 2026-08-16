@@ -32,6 +32,15 @@ public class Bookmark {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	/**
+	 * Which install this bookmark belongs to — a random id the client generates once and sends as
+	 * {@code X-Client-Id}. It is not authentication: the value is self-asserted, so it separates
+	 * collections without protecting them. Accounts are the upgrade when the data is worth
+	 * protecting rather than merely separating.
+	 */
+	@Column(name = "client_id", nullable = false, length = 64)
+	private String clientId;
+
 	@Column(nullable = false, length = 2048)
 	private String url;
 
@@ -70,6 +79,14 @@ public class Bookmark {
 
 	public Long getId() {
 		return this.id;
+	}
+
+	public String getClientId() {
+		return this.clientId;
+	}
+
+	public void setClientId(String clientId) {
+		this.clientId = clientId;
 	}
 
 	public String getUrl() {

@@ -1,5 +1,7 @@
 package com.emil.bookmarks.bookmark;
 
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,7 +33,8 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
 	 */
 	@Query("""
 			select b from Bookmark b
-			where (:text is null
+			where b.clientId = :clientId
+			  and (:text is null
 			        or lower(b.title) like :text escape '\\'
 			        or lower(b.notes) like :text escape '\\'
 			        or exists (select t from b.tags t where t like :text escape '\\'))
@@ -45,7 +48,14 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
 			+ (case when exists (select t from b.tags t where t like :text escape '\\') then 1 else 0 end)
 			+ (case when lower(b.notes) like :text escape '\\' then 1 else 0 end) desc
 			""")
-	Page<Bookmark> search(@Param("text") String text, @Param("tag") String tag,
+	Page<Bookmark> search(@Param("clientId") String clientId, @Param("text") String text, @Param("tag") String tag,
 			@Param("favourite") Boolean favourite, Pageable pageable);
+
+	/**
+	 * Single-bookmark lookup, scoped the same way. Another client's id has to come back empty
+	 * rather than forbidden — a 403 would confirm the row exists, which is exactly what a caller
+	 * guessing ids is trying to learn.
+	 */
+	Optional<Bookmark> findByIdAndClientId(Long id, String clientId);
 
 }

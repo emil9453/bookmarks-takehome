@@ -28,6 +28,13 @@ class BookmarkApiTests {
 
 	private static final String PATH = "/api/v1/bookmarks";
 
+	/**
+	 * The fixtures go in through the service, the assertions come back over HTTP without an
+	 * {@code X-Client-Id} header — so this has to be the same bucket the controller falls back to,
+	 * or every one of these tests asserts against an empty list.
+	 */
+	private static final String CLIENT = "shared";
+
 	@Autowired
 	private RestTestClient rest;
 
@@ -170,7 +177,7 @@ class BookmarkApiTests {
 
 		List<Long> seen = new ArrayList<>();
 		for (int page = 0; page < 3; page++) {
-			this.service.search(null, null, null, PageRequest.of(page, 10, Sort.by(Sort.Direction.ASC, "title")))
+			this.service.search(CLIENT, null, null, null, PageRequest.of(page, 10, Sort.by(Sort.Direction.ASC, "title")))
 				.forEach((bookmark) -> seen.add(bookmark.id()));
 		}
 
@@ -188,7 +195,7 @@ class BookmarkApiTests {
 	@ParameterizedTest
 	@ValueSource(strings = { "favourite", "favorite" })
 	void bothSpellingsOfFavouriteFilter(String parameter) {
-		this.service.update(create("https://example.com/starred", "Starred"),
+		this.service.update(CLIENT, create("https://example.com/starred", "Starred"),
 				new BookmarkDtos.UpdateRequest(null, null, null, null, true));
 		create("https://example.com/plain", "Plain");
 
@@ -261,12 +268,60 @@ class BookmarkApiTests {
 		this.rest.get().uri(base + "/" + id).exchange().expectStatus().isOk();
 	}
 
+	/**
+	 * The reason the header exists. Before it, every install read one global list, so the first
+	 * two people to open the app saw each other's bookmarks.
+	 *
+	 * <p>Both halves are needed. The list assertion alone passes with the filter applied only to
+	 * the search query, which still leaves anyone able to read, edit and delete another client's
+	 * bookmark by its id — and ids are sequential, so guessing one is not a feat.
+	 */
+	@Test
+	void oneClientNeverSeesAnotherClientsBookmarks() {
+		long theirs = create("https://example.com/theirs", "Theirs");
+
+		this.rest.get()
+			.uri(PATH)
+			.header("X-Client-Id", "somebody-else")
+			.exchange()
+			.expectStatus()
+			.isOk()
+			.expectBody()
+			.jsonPath("$.page.totalElements")
+			.isEqualTo(0);
+
+		// 404 rather than 403: the second confirms the row is there, which is exactly what a
+		// caller walking the id sequence is trying to find out.
+		this.rest.get().uri(PATH + "/" + theirs).header("X-Client-Id", "somebody-else").exchange()
+			.expectStatus().isNotFound();
+		this.rest.delete().uri(PATH + "/" + theirs).header("X-Client-Id", "somebody-else").exchange()
+			.expectStatus().isNotFound();
+
+		// And it is still there for the client that owns it.
+		this.rest.get().uri(PATH + "/" + theirs).exchange().expectStatus().isOk();
+	}
+
+	/**
+	 * The column is {@code varchar(64)}. Without the constraint on the parameter an over-long
+	 * header reaches the insert and comes back a 500 — a client mistake reported as a server
+	 * fault, and one that only shows up once the request has already touched the database.
+	 */
+	@Test
+	void anOverLongClientIdIsARejectedRequestNotAServerError() {
+		this.rest.get()
+			.uri(PATH)
+			.header("X-Client-Id", "x".repeat(65))
+			.exchange()
+			.expectStatus()
+			.isBadRequest();
+	}
+
 	private long create(String url, String title) {
 		return create(url, title, Set.of("tag"));
 	}
 
 	private long create(String url, String title, Set<String> tags) {
-		return this.service.create(new BookmarkDtos.CreateRequest(url, title, tags, null, null)).id();
+		return this.service.create(CLIENT, new BookmarkDtos.CreateRequest(url, title, tags, null, null)).id();
 	}
 
 }

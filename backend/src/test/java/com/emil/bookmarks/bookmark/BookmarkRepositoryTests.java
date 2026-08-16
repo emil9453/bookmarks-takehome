@@ -24,6 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 class BookmarkRepositoryTests {
 
+	private static final String CLIENT = "repository-tests";
+
 	@Autowired
 	private BookmarkRepository repository;
 
@@ -34,6 +36,7 @@ class BookmarkRepositoryTests {
 	void listingBookmarksDoesNotQueryTagsOncePerRow() {
 		for (int i = 0; i < 10; i++) {
 			Bookmark bookmark = new Bookmark();
+			bookmark.setClientId(CLIENT);
 			bookmark.setUrl("https://example.com/" + i);
 			bookmark.setTitle("Bookmark " + i);
 			bookmark.setTags(Set.of("kotlin", "android"));
@@ -51,7 +54,7 @@ class BookmarkRepositoryTests {
 
 		// Through search(), because that is the only list path the API actually uses — findAll
 		// could keep its batching forever while the endpoint people hit lost it.
-		List<Bookmark> page = this.repository.search(null, null, null, PageRequest.of(0, 10)).getContent();
+		List<Bookmark> page = this.repository.search(CLIENT, null, null, null, PageRequest.of(0, 10)).getContent();
 		page.forEach((bookmark) -> bookmark.getTags().size());
 
 		assertThat(page).hasSize(10);

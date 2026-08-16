@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class BookmarkSearchTests {
 
+	private static final String CLIENT = "search-tests";
+
 	@Autowired
 	private BookmarkService service;
 
@@ -96,7 +98,7 @@ class BookmarkSearchTests {
 
 		List<Long> seen = new java.util.ArrayList<>();
 		for (int page = 0; page < 3; page++) {
-			seen.addAll(idsFrom(this.service.search("kotlin", null, null, PageRequest.of(page, 10))));
+			seen.addAll(idsFrom(this.service.search(CLIENT, "kotlin", null, null, PageRequest.of(page, 10))));
 		}
 
 		assertThat(seen).hasSize(25);
@@ -113,7 +115,7 @@ class BookmarkSearchTests {
 		long strong = save("Kotlin guide", Set.of("kotlin"), "nothing relevant");
 		long alsoStrong = save("Kotlin book", Set.of("misc"), "nothing relevant");
 
-		List<Long> firstPage = idsFrom(this.service.search("kotlin", null, null, PageRequest.of(0, 5)));
+		List<Long> firstPage = idsFrom(this.service.search(CLIENT, "kotlin", null, null, PageRequest.of(0, 5)));
 
 		assertThat(firstPage).startsWith(strong, alsoStrong);
 	}
@@ -125,7 +127,7 @@ class BookmarkSearchTests {
 		favourite(save("Java book", Set.of("android"), null));
 		favourite(save("Kotlin notes", Set.of("desktop"), null));
 
-		assertThat(idsFrom(this.service.search("kotlin", "android", true, Pageable.ofSize(20))))
+		assertThat(idsFrom(this.service.search(CLIENT, "kotlin", "android", true, Pageable.ofSize(20))))
 			.containsExactly(wanted);
 	}
 
@@ -134,15 +136,15 @@ class BookmarkSearchTests {
 		save("Kotlin guide", Set.of("android"), null);
 		long starred = favourite(save("Spring", Set.of("java"), null));
 
-		assertThat(idsFrom(this.service.search(null, null, true, Pageable.ofSize(20)))).containsExactly(starred);
-		assertThat(idsFrom(this.service.search(null, "java", null, Pageable.ofSize(20)))).containsExactly(starred);
+		assertThat(idsFrom(this.service.search(CLIENT, null, null, true, Pageable.ofSize(20)))).containsExactly(starred);
+		assertThat(idsFrom(this.service.search(CLIENT, null, "java", null, Pageable.ofSize(20)))).containsExactly(starred);
 	}
 
 	@Test
 	void aTagFilterIsCaseInsensitiveBecauseTagsAreStoredNormalised() {
 		long id = save("Kotlin guide", Set.of("Android"), null);
 
-		assertThat(idsFrom(this.service.search(null, "ANDROID", null, Pageable.ofSize(20)))).containsExactly(id);
+		assertThat(idsFrom(this.service.search(CLIENT, null, "ANDROID", null, Pageable.ofSize(20)))).containsExactly(id);
 	}
 
 	@Test
@@ -173,7 +175,7 @@ class BookmarkSearchTests {
 	}
 
 	private List<BookmarkResponse> search(String query) {
-		return this.service.search(query, null, null, Pageable.ofSize(20)).getContent();
+		return this.service.search(CLIENT, query, null, null, Pageable.ofSize(20)).getContent();
 	}
 
 	private static List<Long> idsFrom(List<BookmarkResponse> results) {
@@ -185,12 +187,12 @@ class BookmarkSearchTests {
 	}
 
 	private long save(String title, Set<String> tags, String notes) {
-		return this.service.create(new CreateRequest("https://example.com/" + title.hashCode(), title, tags, notes,
+		return this.service.create(CLIENT, new CreateRequest("https://example.com/" + title.hashCode(), title, tags, notes,
 				null)).id();
 	}
 
 	private long favourite(long id) {
-		this.service.update(id, new BookmarkDtos.UpdateRequest(null, null, null, null, true));
+		this.service.update(CLIENT, id, new BookmarkDtos.UpdateRequest(null, null, null, null, true));
 		return id;
 	}
 
