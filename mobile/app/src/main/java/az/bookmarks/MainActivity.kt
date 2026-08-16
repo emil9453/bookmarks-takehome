@@ -12,6 +12,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import az.bookmarks.data.ClientId
+import az.bookmarks.data.Network
 import az.bookmarks.ui.AddBookmarkScreen
 import az.bookmarks.ui.BookmarkDetailScreen
 import az.bookmarks.ui.BookmarkListScreen
@@ -21,6 +23,10 @@ import kotlinx.serialization.Serializable
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Before setContent, which is where the first ViewModel — and so the first request — is
+        // created. There is no Application subclass to do this in, and this is the only entry
+        // point into the app.
+        Network.clientId = ClientId.of(this)
         enableEdgeToEdge()
         setContent {
             BirBookmarksTheme {
