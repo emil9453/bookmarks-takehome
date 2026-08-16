@@ -10,6 +10,17 @@ unfinished."* Most of what follows is therefore about what was left out.
 would buy a network hop and nothing else. The trigger to revisit is a second bounded context with
 genuinely different write patterns, not traffic.
 
+**One collection per install, and it is not auth.** The brief rules out accounts, and the literal
+reading of that is one global list — which means the second person to open the app reads the
+first person's bookmarks. Every endpoint is instead scoped to an `X-Client-Id` header: a UUID the
+app generates on first launch and keeps in SharedPreferences, one indexed `client_id` column, one
+predicate in the query. No login screen, no tokens, no user table. It is separation, not
+authentication — the header is self-asserted, so anyone who copies one reads that collection.
+That is the honest limit of it, and accounts are the upgrade when the data is worth protecting
+rather than merely keeping apart. A request with no header falls back to a shared bucket, so curl
+and the OpenAPI page still work by hand. Another client's bookmark id answers 404 rather than
+403: ids are sequential, and 403 would confirm the row exists.
+
 **RFC 9457 problem details, not a custom envelope.** Spring already produces `ProblemDetail`, and a
 `{success, data, error}` wrapper would have forced a generic type around every model on the phone.
 Validation failures add an `errors` object keyed by field name, which is what lets the app put each
@@ -80,10 +91,19 @@ Jackson 2 had it off, so every POST that merely *omitted* the field came back
 not tick favourite. It compiled, and it only misbehaves with the field absent, so nothing in the
 suite saw it; it surfaced on the first real save from the device. The fix is a boxed `Boolean`.
 
-Three others in the same family: an exception handler that registered and never ran, whose obvious
-fix (`@Order(HIGHEST_PRECEDENCE)`) turned six framework-handled cases into `500`s; `remember` used
-for a flag that had to outlive the composable; and a paging cursor that could desync from the list
-it described until `LazyColumn`'s duplicate keys killed the app.
+Four others in the same family. The instructive one is the most recent: capping the new
+`X-Client-Id` header at its column width by writing the obvious `@NotBlank @Size(max = 64)` on the
+parameter. One constraint annotation switches that whole controller into Framework 7's built-in
+method validation, so a failed `@Valid @RequestBody` starts raising `HandlerMethodValidationException`
+instead of `MethodArgumentNotValidException` — and the handler that builds the per-field `errors`
+object only catches the latter. Every validation response silently lost the `errors` map the add
+screen reads to put a message under the right input box. Nothing about the header was wrong; one
+annotation broke an unrelated contract three files away. A plain `if` replaced it.
 
-All four compiled. What caught them was a cold reader, a real device, and a test that asserted the
+The other three: an exception handler that registered and never ran, whose obvious fix
+(`@Order(HIGHEST_PRECEDENCE)`) turned six framework-handled cases into `500`s; `remember` used for
+a flag that had to outlive the composable; and a paging cursor that could desync from the list it
+described until `LazyColumn`'s duplicate keys killed the app.
+
+All five compiled. What caught them was a cold reader, a real device, and tests that asserted the
 message rather than the status.

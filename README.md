@@ -15,8 +15,9 @@ Take-home task for BirSearch.
 | **Android APK** | [BirBookmarks-1.0.apk](https://github.com/emil9453/bookmarks-takehome/releases/download/v1.0/BirBookmarks-1.0.apk) ([release](https://github.com/emil9453/bookmarks-takehome/releases/tag/v1.0)) |
 | **Decisions & trade-offs** | [NOTES.md](NOTES.md) |
 
-> The APK is built from tag `v1.0`. Commits after it touch the backend, the instrumented
-> tests and comments only — no app source, so the binary above matches `main`.
+> The APK is built from tag `v1.0` and **is now behind `main`**: per-install scoping
+> (`X-Client-Id`, below) changed app source after it was cut, so the linked binary still shares
+> one collection with every other install. Build from `main` for that behaviour.
 
 > Self-hosted on a small VPS: Docker under Coolify, behind Traefik with a Let's Encrypt
 > certificate. It does not sleep, so the first request is as fast as the rest — around 250ms.
@@ -80,6 +81,14 @@ DELETE /api/v1/bookmarks/{id}
 `/api/v1/bookmarks` is canonical, so a breaking change has an obvious home in `/api/v2`.
 **`/bookmarks` maps to the same resource**, because that is the path the API was specified with
 and a caller who uses it should get the resource rather than a `404`.
+
+Every endpoint is scoped to an **`X-Client-Id`** header. The app generates a UUID on first launch
+and sends it on every request, so two phones do not share one list. This is separation, not
+authentication: the header is self-asserted, so anyone who copies one reads that collection — the
+brief rules out accounts, and this is the smallest thing that keeps two installs apart without
+them. A request with no header falls back to a shared collection, which is what the `curl` examples
+above and the Swagger page use. Another client's bookmark id answers `404`, not `403`: ids are
+sequential, and `403` would confirm the row is there.
 
 Interactive docs, generated from the controllers rather than hand-written, are at
 [`/swagger-ui.html`](https://bookmarks.178.104.76.109.sslip.io/swagger-ui.html).

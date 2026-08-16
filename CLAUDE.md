@@ -11,7 +11,10 @@ here needs a spoken defence, so the reasoning matters more than the polish.
 
 The brief says, verbatim: *"No auth, no over-engineering. Small and clean beats big and unfinished."*
 
-- **No auth, no user model, no owner column.**
+- **No auth, no user model, no login.** One deliberate exception, added 16 Aug on review
+  feedback: bookmarks are scoped to an `X-Client-Id` header the app generates once per install,
+  so two phones do not share one list. It is separation, not authentication — the header is
+  self-asserted. Accounts remain out of scope.
 - **One service.** Decomposition was evaluated against a real checklist and rejected. Do not
   reopen it.
 - **Do not build for scale.** The scale path is written into NOTES.md, not into the code.
