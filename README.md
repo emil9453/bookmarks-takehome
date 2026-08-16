@@ -12,12 +12,11 @@ Take-home task for BirSearch.
 | **Live API** | https://bookmarks.178.104.76.109.sslip.io |
 | **API docs** | https://bookmarks.178.104.76.109.sslip.io/swagger-ui.html |
 | **Health check** | https://bookmarks.178.104.76.109.sslip.io/actuator/health |
-| **Android APK** | [BirBookmarks-1.0.apk](https://github.com/emil9453/bookmarks-takehome/releases/download/v1.0/BirBookmarks-1.0.apk) ([release](https://github.com/emil9453/bookmarks-takehome/releases/tag/v1.0)) |
+| **Android APK** | [BirBookmarks-1.1.apk](https://github.com/emil9453/bookmarks-takehome/releases/download/v1.1/BirBookmarks-1.1.apk) ([release](https://github.com/emil9453/bookmarks-takehome/releases/tag/v1.1)) |
 | **Decisions & trade-offs** | [NOTES.md](NOTES.md) |
 
-> The APK is built from tag `v1.0` and **is now behind `main`**: per-install scoping
-> (`X-Client-Id`, below) changed app source after it was cut, so the linked binary still shares
-> one collection with every other install. Build from `main` for that behaviour.
+> The APK is built from tag `v1.1`, which is `main`. It scopes bookmarks per install
+> (`X-Client-Id`, below), so two phones installing it do not share a list.
 
 > Self-hosted on a small VPS: Docker under Coolify, behind Traefik with a Let's Encrypt
 > certificate. It does not sleep, so the first request is as fast as the rest — around 250ms.
